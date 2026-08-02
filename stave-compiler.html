@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Stave Compiler</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--paper:#F4ECDC;--ink:#2A2219;--ink-dim:rgba(42,34,25,.66);--ink-faint:rgba(42,34,25,.42);
+ --brass:#8A6B14;--brass-dim:rgba(138,107,20,.34);--mark:#A8352C;--violet:#4A3F78}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(1000px 900px at 42% 20%,#FBF5E8 0%,var(--paper) 52%,#E8DDC6 100%);
+ color:var(--ink);font-family:'IBM Plex Mono','Courier New',monospace}
+body{padding:22px 26px 44px}
+#top{max-width:680px;margin-bottom:12px}
+#top .eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--brass)}
+#top h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:30px;line-height:1.05;margin:8px 0 5px}
+#top .sub{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:15.5px;color:var(--ink-dim)}
+#layout{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+#stage{flex:1 1 540px;min-width:320px;text-align:center}
+#stave{width:100%;max-width:700px;height:auto;display:inline-block}
+#title{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;margin-top:4px}
+#scale{font-size:10.5px;color:var(--ink-faint);letter-spacing:.12em;text-transform:uppercase;margin-top:4px}
+#panel{flex:0 0 302px;padding:15px 17px;background:rgba(255,252,244,.76);border:1px solid var(--brass-dim);
+ border-radius:2px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 10px 30px rgba(80,60,25,.12);position:sticky;top:22px}
+.sec{border-top:1px solid var(--brass-dim);padding-top:9px;margin-top:9px}
+.sec:first-child{border-top:none;padding-top:0;margin-top:0}
+.sec-h{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:7px}
+textarea{width:100%;height:78px;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px;
+ background:rgba(255,255,255,.72);border:1px solid rgba(42,34,25,.2);border-radius:2px;color:var(--ink);resize:vertical}
+.err{color:var(--mark);font-size:10.5px;margin-top:5px;min-height:13px;line-height:1.4}
+.f-row{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--ink-dim);padding:2.5px 0}
+.f-row .v{color:var(--ink);text-align:right}
+.act{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.ab{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass);background:rgba(255,255,255,.55);
+ border:1px solid var(--brass-dim);padding:5px 9px;border-radius:2px;cursor:pointer;text-align:left}
+.ab:hover{background:rgba(201,146,42,.12)}
+.lex{font-size:10px;color:var(--ink-dim);line-height:1.55}
+.lex b{color:var(--ink);font-weight:500}
+#syntax{font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;line-height:1.45;color:var(--ink-dim)}
+code{background:rgba(42,34,25,.07);padding:1px 4px;border-radius:2px;font-size:10.5px}
+button:focus-visible,textarea:focus-visible{outline:1px solid var(--brass);outline-offset:1px}
+button{-webkit-tap-highlight-color:transparent}
+@media (max-width:900px){body{padding:15px}#top h1{font-size:23px}#stage{min-width:100%}#panel{flex:1 1 100%;position:static}}
+@media print{html,body{background:#fff}#panel{display:none!important}}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="eyebrow">Corporeal Studies &middot; the working notation</div>
+  <h1>The Stave Compiler</h1>
+  <div class="sub">A spell is a tree. Depth becomes radius, so the greater the working, the wider it must be drawn.</div>
+</header>
+
+<div id="layout">
+  <div id="stage">
+    <svg id="stave" viewBox="0 0 240 240"></svg>
+    <div id="title"></div>
+    <div id="scale"></div>
+  </div>
+
+  <aside id="panel">
+    <div class="sec">
+      <div class="sec-h">The working</div>
+      <textarea id="src">fire kindle</textarea>
+      <div class="err" id="err"></div>
+      <div class="act"><button class="ab" id="dl">Download SVG</button></div>
+    </div>
+    <div class="sec"><div class="sec-h">Syntax</div>
+      <div id="syntax">An aspect, or two bound with <code>+</code>, then an action. Actions take
+      further actions or aspects in brackets, and those take more, without limit.
+      Each nesting is one more ring outward.</div>
+    </div>
+    <div class="sec"><div class="sec-h">Try these</div><div class="act" id="presets"></div></div>
+    <div class="sec"><div class="sec-h">Measure of the working</div><div id="facts"></div></div>
+    <div class="sec"><div class="sec-h">Lexicon</div><div class="lex" id="lex"></div></div>
+  </aside>
+</div>
+
+<script id="gen">
+/* ════════════════════════════════════════════════════════════════════
+   THE STAVE COMPILER — recursive
+
+   A working is a tree:
+       aspect [+ aspect]  action( action( ... ), aspect, ... )
+
+   The hub states the aspect. Every action becomes a run of conduit
+   closing on its terminal; anything nested inside that action branches
+   onward from that terminal, one ring further out. The whole tree is
+   repeated about the hub with the aspect's own symmetry, so a working
+   grows in every direction at once and its diameter is a direct
+   measure of its depth.
+
+   Pure function of the text — no randomness anywhere. And nothing is
+   ever drawn detached: every run leaves a point already drawn, so the
+   figure remains a single conduit however large it becomes.
+   ════════════════════════════════════════════════════════════════════ */
+(function(root){
+
+const RING = {
+  Elemental:   { style:'solid',  color:'#8A6B14', label:'Elemental Ring' },
+  Principle:   { style:'double', color:'#5E6672', label:'Ring of Principle' },
+  Existential: { style:'wave',   color:'#3F4E78', label:'Existential Ring' }
+};
+
+const ASPECTS = [
+  { name:'Air',    ring:'Elemental',   angle:45,  tier:1, opp:'Earth' },
+  { name:'Water',  ring:'Elemental',   angle:135, tier:1, opp:'Fire' },
+  { name:'Earth',  ring:'Elemental',   angle:225, tier:1, opp:'Air' },
+  { name:'Fire',   ring:'Elemental',   angle:315, tier:1, opp:'Water' },
+  { name:'Light',  ring:'Principle',   angle:45,  tier:2, opp:'Dark' },
+  { name:'Order',  ring:'Principle',   angle:135, tier:2, opp:'Entropy' },
+  { name:'Dark',   ring:'Principle',   angle:225, tier:2, opp:'Light' },
+  { name:'Entropy',ring:'Principle',   angle:315, tier:2, opp:'Order' },
+  { name:'Space',  ring:'Existential', angle:45,  tier:2, opp:'Time' },
+  { name:'Life',   ring:'Existential', angle:135, tier:2, opp:'Death' },
+  { name:'Time',   ring:'Existential', angle:225, tier:2, opp:'Space' },
+  { name:'Death',  ring:'Existential', angle:315, tier:2, opp:'Life' },
+  { name:'Mind',     rings:['Elemental','Existential'], angle:90,  tier:3, opp:'Flesh' },
+  { name:'Flesh',    rings:['Elemental','Existential'], angle:270, tier:3, opp:'Mind' },
+  { name:'Electromagnetism', short:'EM', rings:['Elemental','Principle'], angle:0, tier:3, opp:'Gravity' },
+  { name:'Gravity',  rings:['Elemental','Principle'],   angle:180, tier:3, opp:'Electromagnetism' },
+  { name:'Soul',     rings:['Principle','Existential'], angle:135, tier:4, opp:'Oblivion' },
+  { name:'Oblivion', rings:['Principle','Existential'], angle:315, tier:4, opp:'Soul' },
+  { name:'Aether', aether:true, angle:0, tier:1, opp:null }
+];
+
+const ACTIONS = [
+  { name:'Kindle',  term:'barbOut', bars:1, opp:'Quench',  gloss:'start, set going' },
+  { name:'Quench',  term:'barbIn',  bars:1, opp:'Kindle',  gloss:'stop, put out' },
+  { name:'Bind',    term:'hook',    bars:2, opp:'Sever',   gloss:'hold fast, join' },
+  { name:'Sever',   term:'cross',   bars:2, opp:'Bind',    gloss:'cut, part' },
+  { name:'Ward',    term:'splitBar',bars:3, opp:'Breach',  gloss:'turn aside, shield' },
+  { name:'Breach',  term:'trident', bars:3, opp:'Ward',    gloss:'pierce, open' },
+  { name:'Reveal',  term:'ring',    bars:0, opp:'Conceal', gloss:'show, make plain' },
+  { name:'Conceal', term:'disc',    bars:0, opp:'Reveal',  gloss:'hide, withhold' },
+  { name:'Draw',    term:'barbIn',  bars:2, opp:'Send',    gloss:'pull toward' },
+  { name:'Send',    term:'barbOut', bars:2, opp:'Draw',    gloss:'push away' },
+  { name:'Mend',    term:'loop',    bars:1, opp:'Rot',     gloss:'make whole' },
+  { name:'Rot',     term:'fork',    bars:1, opp:'Mend',    gloss:'break down' },
+  { name:'Amplify', term:'trident', bars:0, opp:'Dampen',  gloss:'swell, increase' },
+  { name:'Dampen',  term:'bar',     bars:0, opp:'Amplify', gloss:'lessen, quiet' },
+  { name:'Sustain', term:'loop',    bars:3, opp:'Release', gloss:'hold in being' },
+  { name:'Release', term:'fork',    bars:3, opp:'Sustain', gloss:'let go' }
+];
+
+const aspectOf = s => ASPECTS.find(a => a.name.toLowerCase() === s || (a.short||'').toLowerCase() === s);
+const actionOf = s => ACTIONS.find(a => a.name.toLowerCase() === s);
+
+/* ── parser ───────────────────────────────────────────────────────── */
+function parse(text){
+  const src = String(text||'').trim().toLowerCase();
+  if (!src) throw new Error('Write a working.');
+  const m = src.match(/^([a-z+]+)\s+([\s\S]+)$/);
+  if (!m) throw new Error('Expected an aspect, then an action.');
+  const names = m[1].split('+').filter(Boolean);
+  const aspects = names.map(n => {
+    const a = aspectOf(n);
+    if (!a) throw new Error(`No aspect called "${n}".`);
+    return a;
+  });
+  if (aspects.length > 2) throw new Error('At most two aspects may be bound.');
+
+  const toks = m[2].match(/[a-z]+|\(|\)|,/g) || [];
+  let i = 0;
+  function node(){
+    const w = toks[i++];
+    if (!w || !/^[a-z]+$/.test(w)) throw new Error('Expected an action or aspect name.');
+    const act = actionOf(w);
+    if (!act){
+      const asp = aspectOf(w);
+      if (!asp) throw new Error(`"${w}" is neither an action nor an aspect.`);
+      if (toks[i] === '(') throw new Error(`"${w}" is an aspect; aspects take nothing inside them.`);
+      return { aspect: asp, kids: [] };
+    }
+    const kids = [];
+    if (toks[i] === '('){
+      i++;
+      if (toks[i] === ')') throw new Error(`Empty brackets after "${w}".`);
+      for(;;){
+        kids.push(node());
+        if (toks[i] === ','){ i++; continue; }
+        if (toks[i] === ')'){ i++; break; }
+        throw new Error(`Expected , or ) after "${w}".`);
+      }
+    }
+    return { action: act, kids };
+  }
+  const tree = node();
+  if (i < toks.length) throw new Error('Unexpected text after the working ends.');
+  return { aspects, tree };
+}
+
+function measure(n){
+  let depth = 1, count = 1;
+  for (const k of n.kids){ const m = measure(k); depth = Math.max(depth, 1 + m.depth); count += m.count; }
+  return { depth, count };
+}
+
+/* ── geometry ─────────────────────────────────────────────────────── */
+const R_HUB = 26, STEP = 58;
+const rad = d => -d*Math.PI/180;
+const f = n => Math.round(n*100)/100;
+
+function line(x1,y1,x2,y2,col,w){
+  return `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${col}" stroke-width="${f(w)}" stroke-linecap="round"/>`;
+}
+function wave(x1,y1,x2,y2,col,w,amp,cycles){
+  const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L, px=-uy, py=ux;
+  const N = Math.max(14, Math.round(cycles*9));
+  let d = `M ${f(x1)},${f(y1)}`;
+  for (let i=1;i<=N;i++){
+    const t=i/N, taper=Math.min(1,t*3)*Math.min(1,(1-t)*3+0.35);
+    const s=Math.sin(t*cycles*2*Math.PI)*amp*taper;
+    d += ` L ${f(x1+ux*L*t+px*s)},${f(y1+uy*L*t+py*s)}`;
+  }
+  return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${f(w)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function runSeg(x1,y1,x2,y2,col,w,style){
+  const L = Math.hypot(x2-x1,y2-y1);
+  if (style === 'wave') return wave(x1,y1,x2,y2,col,w,Math.min(5.5, L/11),2);
+  if (style === 'double'){
+    const dx=x2-x1, dy=y2-y1, LL=L||1, px=-dy/LL, py=dx/LL, o=Math.min(2.8, L/20);
+    return line(x1,y1,x2+px*o,y2+py*o,col,w*0.82) + line(x1,y1,x2-px*o,y2-py*o,col,w*0.82) +
+           line(x2+px*o,y2+py*o,x2-px*o,y2-py*o,col,w*0.82);
+  }
+  return line(x1,y1,x2,y2,col,w);
+}
+
+function terminal(kind, x, y, deg, col, w, s){
+  const ux=Math.cos(rad(deg)), uy=Math.sin(rad(deg)), px=-uy, py=ux;
+  const at=(du,dp)=>[x+ux*du*s+px*dp*s, y+uy*du*s+py*dp*s];
+  switch(kind){
+    case 'bar': return line(...at(0,-11),...at(0,11),col,w);
+    case 'splitBar': return line(...at(0,-12),...at(0,12),col,w) +
+      line(...at(0,-12),...at(9,-12),col,w) + line(...at(0,12),...at(9,12),col,w);
+    case 'fork': return line(x,y,...at(15,-11),col,w) + line(x,y,...at(15,11),col,w);
+    case 'trident': return line(x,y,...at(16,-12),col,w) + line(x,y,...at(16,12),col,w) + line(x,y,...at(17,0),col,w);
+    case 'cross': return line(...at(-9,-9),...at(9,9),col,w) + line(...at(-9,9),...at(9,-9),col,w);
+    case 'barbOut': { const h=at(15,0);
+      return line(x,y,h[0],h[1],col,w) + line(h[0],h[1],...at(3,-9),col,w) + line(h[0],h[1],...at(3,9),col,w); }
+    case 'barbIn': return line(x,y,...at(-13,-9),col,w) + line(x,y,...at(-13,9),col,w);
+    case 'ring': { const c=at(7,0);
+      return `<circle cx="${f(c[0])}" cy="${f(c[1])}" r="${f(7*s)}" fill="none" stroke="${col}" stroke-width="${f(w)}"/>`; }
+    case 'disc': { const c=at(5,0);
+      return `<circle cx="${f(c[0])}" cy="${f(c[1])}" r="${f(5.5*s)}" fill="${col}"/>`; }
+    case 'hook': { const e=at(4,13), c=at(13,0);
+      return `<path d="M ${f(x)},${f(y)} Q ${f(c[0])},${f(c[1])} ${f(e[0])},${f(e[1])}" fill="none" stroke="${col}" stroke-width="${f(w)}" stroke-linecap="round"/>`; }
+    case 'loop': { const c1=at(14,-11), c2=at(14,11);
+      return `<path d="M ${f(x)},${f(y)} C ${f(c1[0])},${f(c1[1])} ${f(c2[0])},${f(c2[1])} ${f(x)},${f(y)}" fill="none" stroke="${col}" stroke-width="${f(w)}" stroke-linecap="round"/>`; }
+  }
+  return '';
+}
+
+function miniAspect(asp, x, y, r){
+  let o = `<circle cx="${f(x)}" cy="${f(y)}" r="${f(r)}" fill="none" stroke="#2A2219" stroke-width="1.5" opacity=".82"/>`;
+  if (asp.aether) return o + `<circle cx="${f(x)}" cy="${f(y)}" r="${f(r*0.3)}" fill="#4A3F78"/>`;
+  (asp.rings || [asp.ring]).forEach(rn => {
+    const st = RING[rn];
+    const x1=x+r*Math.cos(rad(asp.angle)),     y1=y+r*Math.sin(rad(asp.angle));
+    const x2=x+r*Math.cos(rad(asp.angle+180)), y2=y+r*Math.sin(rad(asp.angle+180));
+    if (st.style==='wave') o += wave(x1,y1,x2,y2,st.color,1.7,r*0.2,2);
+    else if (st.style==='double'){
+      const dx=(y2-y1), dy=-(x2-x1), L=Math.hypot(dx,dy)||1, off=1.4;
+      o += line(x1+off*dx/L,y1+off*dy/L,x2+off*dx/L,y2+off*dy/L,st.color,1.3)
+         + line(x1-off*dx/L,y1-off*dy/L,x2-off*dx/L,y2-off*dy/L,st.color,1.3);
+    } else o += line(x1,y1,x2,y2,st.color,2);
+  });
+  const nx=x+r*Math.cos(rad(asp.angle)), ny=y+r*Math.sin(rad(asp.angle));
+  return o + `<circle cx="${f(nx)}" cy="${f(ny)}" r="${f(r*0.26)}" fill="#2A2219"/>`;
+}
+
+function hub(a, b, cx, cy){
+  let o = `<circle cx="${cx}" cy="${cy}" r="${R_HUB}" fill="none" stroke="#2A2219" stroke-width="1.9" opacity=".82"/>`;
+  if (a.aether){
+    for (let i=0;i<12;i++){
+      const x1=cx+(R_HUB+3)*Math.cos(rad(i*30)), y1=cy+(R_HUB+3)*Math.sin(rad(i*30));
+      const x2=cx+(R_HUB+7)*Math.cos(rad(i*30)), y2=cy+(R_HUB+7)*Math.sin(rad(i*30));
+      o += line(x1,y1,x2,y2,'#4A3F78',1.3);
+    }
+    return o + `<circle cx="${cx}" cy="${cy}" r="5.5" fill="#4A3F78"/>`;
+  }
+  const chord = (asp, dim) => {
+    let s='';
+    (asp.rings || [asp.ring]).forEach(rn => {
+      const st = RING[rn];
+      const x1=cx+R_HUB*Math.cos(rad(asp.angle)),     y1=cy+R_HUB*Math.sin(rad(asp.angle));
+      const x2=cx+R_HUB*Math.cos(rad(asp.angle+180)), y2=cy+R_HUB*Math.sin(rad(asp.angle+180));
+      if (st.style==='double'){
+        const dx=(y2-y1), dy=-(x2-x1), L=Math.hypot(dx,dy)||1, off=1.7;
+        s += line(x1+off*dx/L,y1+off*dy/L,x2+off*dx/L,y2+off*dy/L,st.color,1.5)
+           + line(x1-off*dx/L,y1-off*dy/L,x2-off*dx/L,y2-off*dy/L,st.color,1.5);
+      } else if (st.style==='wave') s += wave(x1,y1,x2,y2,st.color,2.2,4,2);
+      else s += line(x1,y1,x2,y2,st.color,2.6);
+    });
+    const nx=cx+R_HUB*Math.cos(rad(asp.angle)), ny=cy+R_HUB*Math.sin(rad(asp.angle));
+    return s + (dim
+      ? `<circle cx="${f(nx)}" cy="${f(ny)}" r="5" fill="none" stroke="#A8352C" stroke-width="2.2"/>`
+      : `<circle cx="${f(nx)}" cy="${f(ny)}" r="5.6" fill="#2A2219"/>`);
+  };
+  o += chord(a,false);
+  if (b) o += chord(b,true);
+  return o;
+}
+
+/* ── the recursive draw ───────────────────────────────────────────── */
+function branch(node, angle, spread, depth, px, py, st, cx, cy, out){
+  const r = R_HUB + depth*STEP;
+  const x = cx + r*Math.cos(rad(angle)), y = cy + r*Math.sin(rad(angle));
+  const w = Math.max(1.25, 2.5 - depth*0.16);
+  const s = Math.max(0.5, 1 - depth*0.1);
+
+  out.push(runSeg(px,py,x,y,st.color,w,st.style));
+
+  // marks must follow the run itself, which is a chord once we are past
+  // the first ring — not the radial bearing of the node
+  const segDeg = -Math.atan2(y-py, x-px) * 180/Math.PI;
+
+  if (node.aspect){
+    out.push(miniAspect(node.aspect, x, y, 13*s + 5));
+  } else {
+    const act = node.action;
+    const ux = Math.cos(rad(segDeg)), uy = Math.sin(rad(segDeg));
+    for (let i=0;i<act.bars;i++){
+      const tt = 0.34 + i*0.17;
+      const bx = px + (x-px)*tt, by = py + (y-py)*tt;
+      const half = (12 - i*2)*s;
+      out.push(line(bx+uy*half, by-ux*half, bx-uy*half, by+ux*half, st.color, w));
+    }
+    out.push(terminal(act.term, x, y, segDeg, st.color, w, s));
+  }
+
+  const k = node.kids.length;
+  if (!k) return;
+  const sub = spread/k;
+  node.kids.forEach((kid, i) =>
+    branch(kid, angle - spread/2 + sub*(i+0.5), sub*0.86, depth+1, x, y, st, cx, cy, out));
+}
+
+const armCount = a => a.aether ? 12 : (a.rings ? 8 : 4);
+const styleOf  = a => a.aether ? { color:'#4A3F78', style:'solid' } : RING[(a.rings || [a.ring])[0]];
+
+function compile(text){
+  const { aspects, tree } = parse(text);
+  const { depth, count } = measure(tree);
+  const S = Math.ceil((R_HUB + depth*STEP + 42) * 2);
+  const cx = S/2, cy = S/2;
+  const out = [];
+
+  aspects.forEach((asp, ai) => {
+    const n = armCount(asp), step = 360/n, st = styleOf(asp);
+    const base = asp.angle + (ai ? step/2 : 0);
+    for (let i=0;i<n;i++) branch(tree, base + i*step, step*0.88, 1, cx, cy, st, cx, cy, out);
+  });
+  out.push(hub(aspects[0], aspects[1] || null, cx, cy));
+
+  const inner = out.join('');
+  return { aspects, tree, depth, count, size:S, inner,
+           viewBox:`0 0 ${S} ${S}`,
+           svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}">${inner}</svg>` };
+}
+
+root.SPELL = { RING, ASPECTS, ACTIONS, parse, compile, measure };
+
+})(typeof module !== 'undefined' && module.exports ? module.exports : window);
+</script>
+
+<script>
+const $ = id => document.getElementById(id);
+const S = window.SPELL;
+
+const PRESETS = [
+  ['A candle lit',          'fire kindle'],
+  ['Breath on the coals',   'fire+air kindle(amplify)'],
+  ['A ward that holds',     'water ward(sustain, conceal)'],
+  ['Drawing the deep',      'dark draw(water, sustain(conceal))'],
+  ['The mason\u2019s seal', 'earth bind(ward(sustain, sustain), mend(sustain))'],
+  ['Great Work of the Kardia',
+   'soul+oblivion bind(ward(sustain(amplify, conceal), sever(rot)), draw(life, death), breach(kindle(amplify, sustain), quench(dampen)))']
+];
+PRESETS.forEach(([n, src]) => {
+  const b = document.createElement('button');
+  b.className = 'ab'; b.textContent = n;
+  b.addEventListener('click', () => { $('src').value = src; render(); });
+  $('presets').appendChild(b);
+});
+
+$('lex').innerHTML =
+  '<b>Aspects</b> ' + S.ASPECTS.map(a => a.short || a.name).join(', ') +
+  '<br><br><b>Actions</b> ' + S.ACTIONS.map(a => a.name).join(', ');
+
+let cur = null;
+
+function render(){
+  let r;
+  try { r = S.compile($('src').value); $('err').textContent = ''; }
+  catch(e){ $('err').textContent = e.message; return; }
+  cur = r;
+  $('stave').setAttribute('viewBox', r.viewBox);
+  $('stave').innerHTML = r.inner;
+  $('title').textContent = $('src').value.trim();
+
+  const arms = r.aspects.reduce((s,a)=>s + (a.aether?12:(a.rings?8:4)), 0);
+  const paces = (r.size / 240 * 1.8).toFixed(1);
+  $('scale').textContent =
+    `${r.depth} ring${r.depth>1?'s':''} · ${arms*r.count} marks · about ${paces} m across if paced out in the field`;
+
+  $('facts').innerHTML = '';
+  const row=(k,v)=>{const d=document.createElement('div');d.className='f-row';
+    d.innerHTML=`<span>${k}</span><span class="v">${v}</span>`;$('facts').appendChild(d);};
+  row('Aspect', r.aspects.map(a=>a.name).join(' + '));
+  row('Depth', r.depth + ' rings');
+  row('Nodes in the tree', r.count);
+  row('Arms', arms);
+  row('Marks drawn', arms * r.count);
+  row('Figure', r.size + ' × ' + r.size);
+}
+
+$('src').addEventListener('input', render);
+$('dl').addEventListener('click', () => {
+  const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + cur.svg], {type:'image/svg+xml'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = $('src').value.trim().replace(/[^a-z0-9]+/gi,'-').toLowerCase().slice(0,60) + '-stave.svg';
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+});
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Arcane Periodic Table</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --void: #0B0E1A;
+  --vellum: #E8DCC3;
+  --vellum-dim: rgba(232, 220, 195, 0.62);
+  --vellum-faint: rgba(232, 220, 195, 0.38);
+  --brass: #C9A227;
+  --brass-dim: rgba(201, 162, 39, 0.38);
+  --plate: rgba(10, 13, 26, 0.74);
+  --aether: #EAE6FA;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; min-height: 100%;
+  background: radial-gradient(1200px 800px at 50% 30%, #161B3A 0%, var(--void) 55%, #070912 100%);
+  color: var(--vellum);
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+}
+body { padding: 26px 32px 40px; }
+
+#cartouche { max-width: 520px; margin-bottom: 22px; }
+#cartouche .eyebrow { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--brass); }
+#cartouche h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 32px; line-height: 1.05; margin: 9px 0 6px;
+}
+#cartouche .sub {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-size: 16px; color: var(--vellum-dim);
+}
+
+#layout { display: flex; gap: 26px; align-items: flex-start; flex-wrap: wrap; }
+
+/* ── The table ──────────────────────────────────── */
+#table-wrap { position: relative; flex: 1 1 620px; min-width: 560px; overflow-x: auto; padding-top: 18px; }
+#mirror {
+  position: absolute; left: 50%; top: 0; bottom: 26px; width: 0;
+  border-left: 1px solid rgba(201, 162, 39, 0.35);
+  pointer-events: none;
+}
+#mirror::before {
+  content: '\u2726';
+  position: absolute; top: -16px; left: -6px;
+  color: var(--brass); font-size: 12px;
+}
+#grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(72px, 1fr));
+  gap: 8px;
+  position: relative;
+}
+.tier-cap {
+  grid-column: 1 / -1;
+  font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--vellum-faint);
+  padding: 8px 0 0;
+}
+.cell {
+  position: relative;
+  aspect-ratio: 1 / 1.08;
+  background: var(--plate);
+  border-radius: 2px;
+  cursor: pointer;
+  padding: 5px 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--vellum);
+  text-align: center;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  border: 1px solid;
+}
+.cell:hover { transform: translateY(-2px); }
+.cell.mirror-lit { box-shadow: 0 0 14px rgba(212, 175, 55, 0.35); border-color: var(--brass) !important; }
+.cell.active { border-color: var(--brass) !important; box-shadow: 0 0 0 1px var(--brass); }
+.cell .c-z    { position: absolute; top: 4px; left: 6px; font-size: 9.5px; color: var(--vellum-dim); }
+.cell .c-a    { position: absolute; top: 4px; right: 6px; font-size: 9.5px; color: var(--vellum-dim); }
+.cell .c-sym {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 27px; line-height: 1;
+  margin-top: 22px;
+}
+.cell .c-name { display: block; font-size: 8.5px; letter-spacing: 0.06em; color: var(--vellum-dim); margin-top: 4px; }
+.cell .c-arc  { position: absolute; bottom: 4px; right: 6px; font-size: 9px; color: var(--aether); }
+.cell.aether-cell { aspect-ratio: auto; padding: 10px 6px 12px; }
+button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
+button { -webkit-tap-highlight-color: transparent; }
+
+#footnote {
+  margin-top: 14px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-size: 14.5px; color: var(--vellum-faint);
+}
+
+/* ── Detail panel ───────────────────────────────── */
+#panel {
+  flex: 0 0 292px;
+  padding: 16px 18px;
+  background: var(--plate);
+  border: 1px solid var(--brass-dim); border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(232, 220, 195, 0.05), 0 12px 40px rgba(0, 0, 0, 0.5);
+  position: sticky; top: 26px;
+}
+#p-tier { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); }
+#p-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 27px; margin: 7px 0 4px; line-height: 1.1;
+}
+#p-stability { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vellum-faint); margin-bottom: 10px; }
+#p-lore {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; line-height: 1.45; color: var(--vellum-dim); margin: 0 0 12px;
+}
+#p-recipe { border-top: 1px solid rgba(232, 220, 195, 0.12); padding-top: 10px; margin-bottom: 12px; }
+.r-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11.5px; color: var(--vellum-dim); padding: 2.5px 0;
+}
+.r-row .r-val { color: var(--vellum); }
+#p-opp-row { display: flex; align-items: center; gap: 10px; }
+#p-opp-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--vellum-faint); }
+#p-opp {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--vellum);
+  background: transparent; padding: 4px 11px; border-radius: 2px; cursor: pointer;
+}
+#p-opp:hover { background: rgba(232, 220, 195, 0.08); }
+
+@media (max-width: 980px) {
+  body { padding: 16px; }
+  #table-wrap { min-width: 100%; }
+  #panel { flex: 1 1 100%; position: static; }
+}
+</style>
+</head>
+<body>
+
+<header id="cartouche">
+  <div class="eyebrow">Rows are tiers &middot; the centerline is the Mirror of Opposition</div>
+  <h1>The Arcane Periodic Table</h1>
+  <div class="sub">Every element faces its opposite across the Mirror; Aether alone sits upon it</div>
+</header>
+
+<div id="layout">
+  <div id="table-wrap">
+    <div id="mirror"></div>
+    <div id="grid"></div>
+    <div id="footnote">Z at top left &middot; mass at top right &middot; \u2726 arcane number (Proalities + Mageias) at bottom right. Hover any element and its opposite answers across the Mirror.</div>
+  </div>
+
+  <aside id="panel" aria-live="polite">
+    <div id="p-tier"></div>
+    <h2 id="p-name"></h2>
+    <div id="p-stability"></div>
+    <p id="p-lore"></p>
+    <div id="p-recipe"></div>
+    <div id="p-opp-row">
+      <span id="p-opp-label">Opposite</span>
+      <button id="p-opp"></button>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   EDIT YOUR TABLE HERE
+   Laws: Proalities = one anchor per Mageia + one pin per
+   abstract aspect (every Proality past the first is strain).
+   Mageias = rings touched, always gold.
+   Neutrons = Z + [0, 1, 2, 4] by tier. Mass = Z + neutrons
+   + Proalities. Arcane number \u2726 = Proalities + Mageias.
+   Layout: row = tier; col + mirrorCol place each opposite
+   pair symmetrically about the Mirror (col k faces col 9\u2212k).
+   ════════════════════════════════════════════════════════════ */
+const TIERS = [
+  { name: 'I \u00B7 The Abiding',   stability: 'Stable forever \u00B7 the common matter of the world' },
+  { name: 'II \u00B7 The Enduring', stability: 'Stable in isolation \u00B7 uncommon in nature' },
+  { name: 'III \u00B7 The Restive', stability: 'Decays over years unless bound \u00B7 veins and relics' },
+  { name: 'IV \u00B7 The Fleeting', stability: 'Persists for heartbeats \u00B7 born at deaths and annihilations' }
+];
+const EXTRA_NEUTRONS = [0, 1, 2, 4];
+
+const ELEMENTS = [
+  // tier 1 — row of four, centered
+  { name: 'Air',   sym: 'A',  Z: 1,  tier: 1, col: 3, rings: ['Elemental'], color: 0xBFD9E8, opposite: 'Earth', lore: 'The hydrogen of the cosmos: one proton, one anchoring Proality, one gold Mageia. Breath is the most abundant substance in creation.' },
+  { name: 'Fire',  sym: 'F',  Z: 2,  tier: 1, col: 4, rings: ['Elemental'], color: 0xE4572E, opposite: 'Water', lore: 'Two protons and an appetite. Only its fuel is mortal.' },
+  { name: 'Water', sym: 'W',  Z: 3,  tier: 1, col: 5, rings: ['Elemental'], color: 0x3E92CC, opposite: 'Fire',  lore: 'Three protons that yield and win. The seas are one unbroken lattice of it.' },
+  { name: 'Earth', sym: 'E',  Z: 4,  tier: 1, col: 6, rings: ['Elemental'], color: 0x9C7A45, opposite: 'Air',   lore: 'Four protons in a dense, patient knot. The mountains are its slow opinion.' },
+
+  // tier 2 — full row of eight
+  { name: 'Light',   sym: 'L',  Z: 5,  tier: 2, col: 1, rings: ['Principle'],   color: 0xF5E7B8, opposite: 'Dark',    lore: 'Clarity, pinned into matter by a second grain of refusal.' },
+  { name: 'Order',   sym: 'Or', Z: 7,  tier: 2, col: 2, rings: ['Principle'],   color: 0x9FBFA8, opposite: 'Entropy', lore: 'The law that lets a thing stay itself \u2014 barely staying itself.' },
+  { name: 'Space',   sym: 'Sp', Z: 9,  tier: 2, col: 3, rings: ['Existential'], color: 0x5E6FA8, opposite: 'Time',    lore: 'Extent itself, folded small enough to hold.' },
+  { name: 'Life',    sym: 'Li', Z: 11, tier: 2, col: 4, rings: ['Existential'], color: 0x7FBF6B, opposite: 'Death',   lore: 'The whirlpool, crystallized. Warm to the touch.' },
+  { name: 'Death',   sym: 'De', Z: 12, tier: 2, col: 5, rings: ['Existential'], color: 0xB8B0A4, opposite: 'Life',    lore: 'The ending, made countable. Cold to the touch.' },
+  { name: 'Time',    sym: 'Ti', Z: 10, tier: 2, col: 6, rings: ['Existential'], color: 0xC08A54, opposite: 'Space',   lore: 'Duration in a bottle. Ages slightly faster than its surroundings.' },
+  { name: 'Entropy', sym: 'En', Z: 8,  tier: 2, col: 7, rings: ['Principle'],   color: 0xA85C68, opposite: 'Order',   lore: 'The tax, condensed. Handle in sealed vessels.' },
+  { name: 'Dark',    sym: 'D',  Z: 6,  tier: 2, col: 8, rings: ['Principle'],   color: 0x54487A, opposite: 'Light',   lore: 'Privacy given weight. Mined, historically, by feel.' },
+
+  // tier 3 — row of four, centered
+  { name: 'Electromagnetism', sym: 'Em', Z: 13, tier: 3, col: 3, rings: ['Elemental', 'Principle'],   color: 0xF0C94B, opposite: 'Gravity', lore: 'Two natures soldered; the lodestone is its common ore. Its atoms leak sparks as they decay.' },
+  { name: 'Mind',             sym: 'Mi', Z: 15, tier: 3, col: 4, rings: ['Elemental', 'Existential'], color: 0xC79FE0, opposite: 'Flesh',   lore: 'Pattern soldered to matter. Its ores are rumored to dream.' },
+  { name: 'Flesh',            sym: 'Fl', Z: 16, tier: 3, col: 5, rings: ['Elemental', 'Existential'], color: 0xC97B6B, opposite: 'Mind',    lore: 'The clay that knows it is clay. Every living body is a slow-motion decay chain of it.' },
+  { name: 'Gravity',          sym: 'Gv', Z: 14, tier: 3, col: 6, rings: ['Elemental', 'Principle'],   color: 0x77808F, opposite: 'Electromagnetism', lore: 'Weight fused to principle. Found in the deepest places, where it gathers itself.' },
+
+  // tier 4 — the two Fleeting, flanking the Mirror
+  { name: 'Oblivion', sym: 'Ob', Z: 17, tier: 4, col: 4, rings: ['Principle', 'Existential'], color: 0xDDEBEE, opposite: 'Soul',     lore: 'The bright scattering, caught mid-scatter. No vessel has held it past a breath.' },
+  { name: 'Soul',     sym: 'So', Z: 18, tier: 4, col: 5, rings: ['Principle', 'Existential'], color: 0x5C8A87, opposite: 'Oblivion', lore: 'One perfect closed shell around a nucleus that cannot hold. Occurs naturally at exactly one moment in a life.' }
+];
+
+const AETHER_ENTRY = {
+  name: 'Aether', sym: '\u00C6', color: 0xEAE6FA, isAether: true,
+  lore: 'Not an element \u2014 a refusal. Pure Proalities, no shells, no chemistry, no opposite. The only seat on the Mirror itself.'
+};
+/* ═══════════════════════ end of editable block ═══════════════ */
+
+const el = id => document.getElementById(id);
+const grid = el('grid');
+const byName = new Map();
+ELEMENTS.forEach(d => byName.set(d.name, d));
+
+function hexCss(hex, alpha) {
+  const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function recipeFor(d) {
+  if (d.isAether) return { p: 0, n: 0, ae: 7, e: 0, mg: 0 };
+  const abstract = d.rings.filter(r => r !== 'Elemental').length;
+  const mg = d.rings.length;
+  const ae = mg + abstract;
+  const n = d.Z + EXTRA_NEUTRONS[d.tier - 1];
+  return { p: d.Z, n, ae, e: d.Z, mg };
+}
+const massOf = d => { const r = recipeFor(d); return r.p + r.n + r.ae; };
+const arcOf  = d => { const r = recipeFor(d); return r.ae + r.mg; };
+
+// ── Build the grid ────────────────────────────────────────────
+const cellsByName = new Map();
+
+function makeCell(d) {
+  const c = document.createElement('button');
+  c.className = 'cell';
+  c.style.borderColor = hexCss(d.color, 0.45);
+  c.setAttribute('aria-label', d.name);
+
+  if (!d.isAether) {
+    const z = document.createElement('span'); z.className = 'c-z'; z.textContent = d.Z;
+    const a = document.createElement('span'); a.className = 'c-a'; a.textContent = massOf(d);
+    const arc = document.createElement('span'); arc.className = 'c-arc'; arc.textContent = '\u2726' + arcOf(d);
+    c.append(z, a, arc);
+  }
+  const sym = document.createElement('span'); sym.className = 'c-sym'; sym.textContent = d.sym;
+  sym.style.color = hexCss(d.color, 1);
+  sym.style.textShadow = '0 0 12px ' + hexCss(d.color, 0.5);
+  const nm = document.createElement('span'); nm.className = 'c-name';
+  nm.textContent = d.name === 'Electromagnetism' ? 'Electromag.' : d.name;
+  c.append(sym, nm);
+
+  c.addEventListener('click', () => show(d));
+  c.addEventListener('mouseenter', () => litOpposite(d, true));
+  c.addEventListener('mouseleave', () => litOpposite(d, false));
+  c.addEventListener('focus', () => litOpposite(d, true));
+  c.addEventListener('blur', () => litOpposite(d, false));
+  cellsByName.set(d.name, c);
+  return c;
+}
+
+function litOpposite(d, on) {
+  if (d.isAether || !d.opposite) return;
+  const oc = cellsByName.get(d.opposite);
+  if (oc) oc.classList.toggle('mirror-lit', on);
+}
+
+[1, 2, 3, 4].forEach(tier => {
+  const cap = document.createElement('div');
+  cap.className = 'tier-cap';
+  cap.textContent = TIERS[tier - 1].name;
+  grid.appendChild(cap);
+  ELEMENTS.filter(d => d.tier === tier).forEach(d => {
+    const c = makeCell(d);
+    c.style.gridColumn = String(d.col);
+    grid.appendChild(c);
+  });
+});
+
+// Aether: astride the Mirror
+{
+  const cap = document.createElement('div');
+  cap.className = 'tier-cap';
+  cap.textContent = '\u2014 \u00B7 The Still Point';
+  grid.appendChild(cap);
+  const c = makeCell(AETHER_ENTRY);
+  c.classList.add('aether-cell');
+  c.style.gridColumn = '4 / 6';
+  grid.appendChild(c);
+}
+
+// ── Detail panel ──────────────────────────────────────────────
+function recipeRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'r-row';
+  const l = document.createElement('span'); l.textContent = label;
+  const v = document.createElement('span'); v.className = 'r-val'; v.textContent = value;
+  row.append(l, v);
+  return row;
+}
+
+function show(d) {
+  cellsByName.forEach((c, name) => c.classList.toggle('active', name === d.name));
+  el('p-tier').textContent = d.isAether ? 'The Still Point' : TIERS[d.tier - 1].name;
+  el('p-name').textContent = d.name;
+  el('p-stability').textContent = d.isAether ? 'Coheres only with itself' : TIERS[d.tier - 1].stability;
+  el('p-lore').textContent = d.lore;
+
+  const rec = recipeFor(d);
+  const recipe = el('p-recipe');
+  recipe.innerHTML = '';
+  recipe.appendChild(recipeRow('Protons', rec.p));
+  recipe.appendChild(recipeRow('Neutrons', rec.n));
+  recipe.appendChild(recipeRow('Proalities', rec.ae));
+  recipe.appendChild(recipeRow('Electrons', rec.e));
+  recipe.appendChild(recipeRow('Mageias (gold)', rec.mg));
+
+  const oppRow = el('p-opp-row');
+  if (d.isAether || !d.opposite) {
+    oppRow.style.display = 'none';
+  } else {
+    oppRow.style.display = 'flex';
+    const btn = el('p-opp');
+    const od = byName.get(d.opposite);
+    btn.textContent = d.opposite;
+    btn.style.border = '1px solid ' + hexCss(od.color, 0.6);
+    btn.onclick = () => show(od);
+  }
+}
+
+show(ELEMENTS[0]);
+</script>
+</body>
+</html>

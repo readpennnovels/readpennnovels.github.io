@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Aetheric Compass VII &mdash; Fully Seated</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --void: #0B0E1A;
+  --vellum: #E8DCC3;
+  --vellum-dim: rgba(232, 220, 195, 0.62);
+  --vellum-faint: rgba(232, 220, 195, 0.38);
+  --brass: #C9A227;
+  --brass-dim: rgba(201, 162, 39, 0.38);
+  --plate: rgba(10, 13, 26, 0.74);
+  --attract: #D4AF37;
+  --repel: #C4453C;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: radial-gradient(1200px 800px at 50% 42%, #161B3A 0%, var(--void) 55%, #070912 100%);
+  color: var(--vellum);
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+canvas { display: block; touch-action: none; cursor: grab; }
+canvas.dragging { cursor: grabbing; }
+canvas.pointing { cursor: pointer; }
+
+#cartouche {
+  position: fixed; top: 26px; left: 32px; max-width: 360px;
+  pointer-events: none; z-index: 3;
+}
+#cartouche .eyebrow { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--brass); }
+#cartouche h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 32px; line-height: 1.05; margin: 9px 0 6px;
+}
+#cartouche .sub {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-size: 16px; color: var(--vellum-dim);
+}
+
+#hint {
+  position: fixed; top: 32px; right: 360px;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--vellum-faint); z-index: 3; text-align: right;
+}
+
+#panel {
+  position: fixed; right: 32px; top: 26px; bottom: 26px; width: 300px;
+  padding: 16px 18px;
+  background: var(--plate);
+  border: 1px solid var(--brass-dim); border-radius: 2px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(232, 220, 195, 0.05), 0 12px 40px rgba(0, 0, 0, 0.5);
+  z-index: 3; display: flex; flex-direction: column;
+}
+#p-ring { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); min-height: 13px; }
+#p-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 26px; margin: 6px 0 6px; line-height: 1.1;
+}
+#p-lore {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; line-height: 1.45; color: var(--vellum-dim); margin: 0 0 10px;
+}
+#p-ledger-title {
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--vellum-faint); margin: 4px 0 6px;
+  border-top: 1px solid rgba(232, 220, 195, 0.12); padding-top: 10px;
+}
+#p-ledger { overflow-y: auto; flex: 1; min-height: 0; }
+.led-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 2px; font-size: 11.5px; color: var(--vellum-dim);
+  background: none; border: none; width: 100%; text-align: left;
+  font-family: 'IBM Plex Mono', monospace; cursor: pointer; border-radius: 2px;
+}
+.led-row:hover { background: rgba(232, 220, 195, 0.06); color: var(--vellum); }
+.led-row .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.led-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.led-row .val { font-size: 11px; }
+.val.pos { color: var(--attract); }
+.val.neg { color: var(--repel); }
+.val.zero { color: var(--vellum-faint); }
+
+#legend {
+  position: fixed; left: 32px; bottom: 24px;
+  display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100vw - 400px);
+  z-index: 3;
+}
+.lg-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  color: var(--vellum-dim);
+  background: rgba(10, 13, 26, 0.55);
+  border: 1px solid rgba(232, 220, 195, 0.14);
+  padding: 5px 9px; border-radius: 2px; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.lg-btn:hover, .lg-btn.active { color: var(--vellum); border-color: var(--brass-dim); }
+.lg-btn .dot { width: 7px; height: 7px; border-radius: 50%; }
+button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
+button { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 900px) {
+  #cartouche { top: 14px; left: 16px; max-width: 210px; }
+  #cartouche h1 { font-size: 22px; }
+  #cartouche .sub, #hint { display: none; }
+  #panel { left: 16px; right: 16px; top: auto; bottom: 66px; width: auto; max-height: 44vh; }
+  #legend { left: 16px; right: 16px; bottom: 12px; max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<header id="cartouche">
+  <div class="eyebrow">Three rings &middot; six junctions &middot; one still point</div>
+  <h1>The Aetheric Compass VII</h1>
+  <div class="sub">The armillary, fully seated</div>
+</header>
+
+<div id="hint">Drag to turn &middot; scroll to approach &middot; touch a star to weigh it</div>
+
+<aside id="panel" aria-live="polite">
+  <div id="p-ring">Field guide</div>
+  <h2 id="p-name">Choose a magic</h2>
+  <p id="p-lore">Twelve magics ride the rings; six sit at the junctions where the rings cross. Junction magics touch two rings each and are neutral to one another &mdash; Mind is not Flesh is not Soul, by construction. Aether holds the center by refusing everything.</p>
+  <div id="p-ledger-title" style="display:none;">Measured charges</div>
+  <div id="p-ledger"></div>
+</aside>
+
+<nav id="legend" aria-label="Index of magics"></nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   EDIT YOUR COSMOS HERE
+   Twelve magics on three orthogonal rings (four per ring, at
+   each ring's diagonals) + six junction magics on the axes
+   where the rings cross. Chemistry is derived:
+   coupling = −cos(angle)^SHARPNESS (sign preserved).
+   In-ring law: opposites +1.00, neighbors ±0.00.
+   Ring-to-junction: kin −0.35 / longing +0.35.
+   Cross-ring whispers: ±0.13. Junction-to-junction: ±0.00.
+   ════════════════════════════════════════════════════════════ */
+const SHARPNESS = 3;
+const AETHER_REPULSION = 0.60;
+
+const RINGS = [
+  {
+    name: 'Elemental Ring',            // XY plane — the upright ring facing you
+    color: 0xC9A227, opacity: 0.30,
+    elements: [
+      { name: 'Air',   lat:  45, long:  90, color: 0xBFD9E8, lore: 'Breath, speed, forgetting.' },
+      { name: 'Fire',  lat: -45, long:  90, color: 0xE4572E, lore: 'Appetite made visible. Nothing between it and Air \u2014 as decreed.' },
+      { name: 'Earth', lat: -45, long: 270, color: 0x9C7A45, lore: 'Weight, patience, memory.' },
+      { name: 'Water', lat:  45, long: 270, color: 0x3E92CC, lore: 'The yielding that always wins. It whispers kinship to Dark: the deep.' }
+    ]
+  },
+  {
+    name: 'Ring of Principle',         // XZ plane — the horizontal ring
+    color: 0xB8C0CC, opacity: 0.28,
+    elements: [
+      { name: 'Light',   lat: 0, long:  45, color: 0xF5E7B8, lore: 'Not goodness \u2014 clarity.' },
+      { name: 'Order',   lat: 0, long: 135, color: 0x9FBFA8, lore: 'The law that lets a thing stay itself.' },
+      { name: 'Dark',    lat: 0, long: 225, color: 0x54487A, lore: 'Not evil \u2014 privacy. Fire faintly longs for it still.' },
+      { name: 'Entropy', lat: 0, long: 315, color: 0xA85C68, lore: 'The tax every structure pays.' }
+    ]
+  },
+  {
+    name: 'Existential Ring',          // YZ plane — the upright ring edge-on
+    color: 0x7B8BC9, opacity: 0.28,
+    elements: [
+      { name: 'Space', lat:  45, long:   0, color: 0x5E6FA8, lore: 'Extent; the where of things.' },
+      { name: 'Death', lat: -45, long:   0, color: 0xB8B0A4, lore: 'The ending that makes anything worth counting.' },
+      { name: 'Time',  lat: -45, long: 180, color: 0xC08A54, lore: 'Duration. Earth whispers kinship: deep time.' },
+      { name: 'Life',  lat:  45, long: 180, color: 0x7FBF6B, lore: 'The whirlpool that feeds on disorder and calls it growth.' }
+    ]
+  }
+];
+
+// The six junction seats, on the axes where the rings cross.
+const JUNCTIONS = [
+  { name: 'Mind',  lat:  90, long:   0, color: 0xC79FE0, junction: 'Elemental \u00D7 Existential',
+    lore: 'Pattern imposed on the world, at the crown. Kin to Air, Water, Space, and Life; not the body, not the soul \u2014 by construction.' },
+  { name: 'Flesh', lat: -90, long:   0, color: 0xC97B6B, junction: 'Elemental \u00D7 Existential',
+    lore: 'The world\u2019s stubborn clay, at the base. Kin to Earth, Fire, Time, and Death; it longs for breath and for water \u2014 thirst as a law of physics.' },
+  { name: 'Electromagnetism', lat: 0, long:  90, color: 0xF0C94B, junction: 'Elemental \u00D7 Principle',
+    lore: 'The bright force, seated among Air, Fire, Light, and Order. It longs for Earth: lightning seeks the ground.' },
+  { name: 'Gravity',          lat: 0, long: 270, color: 0x77808F, junction: 'Elemental \u00D7 Principle',
+    lore: 'The quiet force, seated among Earth, Water, Dark, and Entropy. Weight, tide, and collapse.' },
+  { name: 'Soul',     lat: 0, long: 180, color: 0x5C8A87, junction: 'Principle \u00D7 Existential',
+    lore: 'The hidden pattern that persists \u2014 inward as Dark, lawful as Order, enduring as Time, woven through Life. It faintly longs for its own Death.' },
+  { name: 'Oblivion', lat: 0, long:   0, color: 0xDDEBEE, junction: 'Principle \u00D7 Existential',
+    lore: 'Not darkness \u2014 the bright scattering. Kin to Light, Entropy, Space, and Death; it hungers for the living.' }
+];
+
+const AETHER = {
+  name: 'Aether', color: 0xEAE6FA,
+  lore: 'Unaspected, directionless, untouched by the law of aspects. It repels all aspected magic equally, and keeps the center of the armillary empty.'
+};
+
+const R_DISPLAY = 2.7;
+/* ═══════════════════════ end of editable block ═══════════════ */
+
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const D2R = Math.PI / 180;
+
+function posFor(lat, long) {
+  const la = lat * D2R, lo = long * D2R;
+  return new THREE.Vector3(
+    Math.cos(la) * Math.sin(lo),
+    Math.sin(la),
+    Math.cos(la) * Math.cos(lo)
+  ).multiplyScalar(R_DISPLAY);
+}
+
+function coupling(a, b) {
+  if (a === b) return null;
+  if (a.isAether || b.isAether) return -AETHER_REPULSION;
+  const d = a.pos.clone().normalize().dot(b.pos.clone().normalize());
+  const clamped = Math.max(-1, Math.min(1, d));
+  return -Math.sign(clamped) * Math.pow(Math.abs(clamped), SHARPNESS);
+}
+
+// ── Scene scaffolding ─────────────────────────────────────────
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+camera.position.z = 8.6;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const canvasEl = renderer.domElement;
+
+const pivot = new THREE.Group();
+pivot.rotation.set(0.3, -0.55, 0);
+scene.add(pivot);
+
+scene.add(new THREE.AmbientLight(0x8890B8, 0.55));
+const coreLight = new THREE.PointLight(0xEAE6FA, 1.1, 40);
+pivot.add(coreLight);
+const brassLight = new THREE.DirectionalLight(0xC9A227, 0.25);
+brassLight.position.set(5, 8, 6);
+scene.add(brassLight);
+
+// ── Shared assets ─────────────────────────────────────────────
+function haloTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,0.85)');
+  g.addColorStop(0.35, 'rgba(255,255,255,0.28)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+const HALO_TEX = haloTexture();
+
+const labelEntries = [];
+function makeLabel(text, scale) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 128;
+  const ctx = c.getContext('2d');
+  const tex = new THREE.CanvasTexture(c);
+  const entry = { c, ctx, tex, text };
+  drawLabel(entry);
+  labelEntries.push(entry);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, opacity: 0.92, depthWrite: false
+  }));
+  sprite.scale.set(1.75 * scale, 0.4375 * scale, 1);
+  return sprite;
+}
+function drawLabel(e) {
+  const { c, ctx, tex, text } = e;
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.font = "italic 500 46px 'Cormorant Garamond', Georgia, serif";
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.65)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#E8DCC3';
+  ctx.fillText(text, 256, 66);
+  tex.needsUpdate = true;
+}
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => labelEntries.forEach(drawLabel));
+}
+
+// ── Build the armillary ───────────────────────────────────────
+const elements = [];
+const pickMeshes = [];
+
+function buildElement(def, pos, radius, ringName, isAether) {
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 36, 36),
+    new THREE.MeshStandardMaterial({
+      color: def.color, emissive: def.color, emissiveIntensity: 0.4,
+      roughness: 0.35, metalness: 0.1
+    })
+  );
+  mesh.position.copy(pos);
+
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: HALO_TEX, color: def.color, transparent: true, opacity: 0.5,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  halo.scale.setScalar(radius * 5.6);
+  halo.position.copy(pos);
+
+  const label = makeLabel(def.name, isAether ? 1 : 0.92);
+  const labelPos = pos.lengthSq() > 0.01
+    ? pos.clone().multiplyScalar(1 + 0.5 / pos.length())
+    : new THREE.Vector3(0, radius + 0.5, 0);
+  label.position.copy(labelPos);
+
+  pivot.add(mesh, halo, label);
+
+  const el = { def, mesh, halo, pos: pos.clone(), ringName, isAether: !!isAether };
+  mesh.userData.el = el;
+  elements.push(el);
+  pickMeshes.push(mesh);
+  return el;
+}
+
+RINGS.forEach(ring => {
+  ring.elements.forEach(def => {
+    buildElement(def, posFor(def.lat, def.long), 0.22, ring.name, false);
+  });
+});
+JUNCTIONS.forEach(def => {
+  buildElement(def, posFor(def.lat, def.long), 0.22, 'Junction \u00B7 ' + def.junction, false);
+});
+const aether = buildElement(AETHER, new THREE.Vector3(0, 0, 0), 0.38, 'The Still Point', true);
+aether.halo.scale.setScalar(3.1);
+
+// Ring guides: XY (default torus), XZ (rotate about X), YZ (rotate about Y)
+{
+  const mk = (color, opacity) => new THREE.Mesh(
+    new THREE.TorusGeometry(R_DISPLAY, 0.007, 8, 200),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity })
+  );
+  const ringXY = mk(RINGS[0].color, RINGS[0].opacity);
+  const ringXZ = mk(RINGS[1].color, RINGS[1].opacity); ringXZ.rotation.x = Math.PI / 2;
+  const ringYZ = mk(RINGS[2].color, RINGS[2].opacity); ringYZ.rotation.y = Math.PI / 2;
+  pivot.add(ringXY, ringXZ, ringYZ);
+}
+
+// Starfield
+{
+  const N = 500, positions = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const rr = 14 + Math.random() * 18;
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    positions[i * 3] = rr * Math.sin(ph) * Math.cos(th);
+    positions[i * 3 + 1] = rr * Math.cos(ph);
+    positions[i * 3 + 2] = rr * Math.sin(ph) * Math.sin(th);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    color: 0xE8DCC3, size: 0.06, transparent: true, opacity: 0.5, sizeAttenuation: true
+  })));
+}
+
+// ── Relation lines ────────────────────────────────────────────
+const lines = new THREE.Group();
+pivot.add(lines);
+
+function clearLines() {
+  while (lines.children.length) {
+    const ch = lines.children.pop();
+    ch.geometry.dispose();
+    ch.material.dispose();
+  }
+}
+function addLine(from, to, colorHex, opacity) {
+  const dir = to.clone().sub(from);
+  const len = dir.length();
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.009, 0.009, 1, 6, 1, true),
+    new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  mesh.scale.y = len;
+  mesh.position.copy(from).add(dir.multiplyScalar(0.5));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize());
+  lines.add(mesh);
+}
+
+// ── Ledger + legend ───────────────────────────────────────────
+const el = id => document.getElementById(id);
+const legend = el('legend');
+const legendBtns = new Map();
+
+function hexCss(hex, alpha) {
+  const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+elements.forEach(e => {
+  const btn = document.createElement('button');
+  btn.className = 'lg-btn';
+  btn.setAttribute('aria-label', 'Weigh ' + e.def.name);
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = hexCss(e.def.color, 1);
+  dot.style.boxShadow = '0 0 8px ' + hexCss(e.def.color, 0.9);
+  btn.appendChild(dot);
+  btn.appendChild(document.createTextNode(e.def.name === 'Electromagnetism' ? 'EM' : e.def.name));
+  btn.addEventListener('click', () => select(e));
+  legend.appendChild(btn);
+  legendBtns.set(e, btn);
+});
+
+let selected = null;
+
+function fmt(c) {
+  if (c === 0) return '\u00B10.00';
+  return (c > 0 ? '+' : '\u2212') + Math.abs(c).toFixed(2);
+}
+
+function select(e) {
+  selected = e;
+  clearLines();
+  el('p-ring').textContent = e.ringName;
+  el('p-name').textContent = e.def.name;
+  el('p-lore').textContent = e.def.lore;
+  el('p-ledger-title').style.display = 'block';
+
+  const rows = elements
+    .filter(o => o !== e)
+    .map(o => ({ o, c: coupling(e, o) }))
+    .sort((a, b) => b.c - a.c);
+
+  const ledger = el('p-ledger');
+  ledger.innerHTML = '';
+  rows.forEach(({ o, c }) => {
+    const row = document.createElement('button');
+    row.className = 'led-row';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = hexCss(o.def.color, 1);
+    const nm = document.createElement('span');
+    nm.className = 'nm';
+    nm.textContent = o.def.name;
+    const val = document.createElement('span');
+    const c2 = Math.abs(c) < 0.005 ? 0 : c;
+    val.className = 'val ' + (c2 === 0 ? 'zero' : c2 > 0 ? 'pos' : 'neg');
+    val.textContent = fmt(c2);
+    row.append(dot, nm, val);
+    row.addEventListener('click', () => select(o));
+    ledger.appendChild(row);
+
+    if (Math.abs(c) >= 0.05) {
+      addLine(e.pos, o.pos, c > 0 ? 0xD4AF37 : 0xC4453C, 0.12 + 0.65 * Math.abs(c));
+    }
+  });
+
+  legendBtns.forEach((btn, o) => btn.classList.toggle('active', o === e));
+}
+
+function deselect() {
+  selected = null;
+  clearLines();
+  el('p-ring').textContent = 'Field guide';
+  el('p-name').textContent = 'Choose a magic';
+  el('p-lore').textContent = 'Twelve magics ride the rings; six sit at the junctions where the rings cross. Junction magics touch two rings each and are neutral to one another \u2014 Mind is not Flesh is not Soul, by construction. Aether holds the center by refusing everything.';
+  el('p-ledger-title').style.display = 'none';
+  el('p-ledger').innerHTML = '';
+  legendBtns.forEach(btn => btn.classList.remove('active'));
+}
+
+// ── Interaction ───────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+const activePointers = new Map();
+let dragging = false, moved = 0, lastX = 0, lastY = 0, lastPinch = 0;
+
+function setNDC(e) {
+  pointerNDC.x = (e.clientX / innerWidth) * 2 - 1;
+  pointerNDC.y = -(e.clientY / innerHeight) * 2 + 1;
+}
+function pick(e) {
+  setNDC(e);
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(pickMeshes, false);
+  return hits.length ? hits[0].object.userData.el : null;
+}
+
+canvasEl.addEventListener('pointerdown', e => {
+  activePointers.set(e.pointerId, e);
+  if (activePointers.size === 1) {
+    dragging = true; moved = 0;
+    lastX = e.clientX; lastY = e.clientY;
+    canvasEl.classList.add('dragging');
+  } else if (activePointers.size === 2) {
+    const pts = [...activePointers.values()];
+    lastPinch = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+  }
+  canvasEl.setPointerCapture(e.pointerId);
+});
+
+canvasEl.addEventListener('pointermove', e => {
+  if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, e);
+
+  if (activePointers.size === 2) {
+    const pts = [...activePointers.values()];
+    const d = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+    if (lastPinch) {
+      camera.position.z = THREE.MathUtils.clamp(camera.position.z - (d - lastPinch) * 0.012, 4.5, 14);
+    }
+    lastPinch = d;
+    return;
+  }
+
+  if (dragging && activePointers.size === 1) {
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    pivot.rotation.y += dx * 0.005;
+    pivot.rotation.x = THREE.MathUtils.clamp(pivot.rotation.x + dy * 0.005, -1.35, 1.35);
+    lastX = e.clientX; lastY = e.clientY;
+  } else if (e.pointerType === 'mouse') {
+    canvasEl.classList.toggle('pointing', !!pick(e));
+  }
+});
+
+function endPointer(e) {
+  const wasTap = dragging && moved < 6 && activePointers.size === 1;
+  activePointers.delete(e.pointerId);
+  if (activePointers.size === 0) {
+    dragging = false;
+    canvasEl.classList.remove('dragging');
+    lastPinch = 0;
+    if (wasTap) {
+      const hit = pick(e);
+      hit ? select(hit) : deselect();
+    }
+  }
+}
+canvasEl.addEventListener('pointerup', endPointer);
+canvasEl.addEventListener('pointercancel', endPointer);
+
+canvasEl.addEventListener('wheel', e => {
+  e.preventDefault();
+  camera.position.z = THREE.MathUtils.clamp(camera.position.z + e.deltaY * 0.004, 4.5, 14);
+}, { passive: false });
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ── Animate ───────────────────────────────────────────────────
+function animate(t) {
+  requestAnimationFrame(animate);
+  if (!dragging && !REDUCED) pivot.rotation.y += 0.001;
+
+  const s = REDUCED ? 1 : 1 + 0.05 * Math.sin(t * 0.004);
+  elements.forEach(o => {
+    const hot = selected && o === selected;
+    o.mesh.scale.setScalar(hot ? s * 1.15 : 1);
+    o.halo.material.opacity = hot ? 0.78 : 0.5;
+  });
+
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

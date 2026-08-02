@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Aspect Cycle</title>
+<meta name="description" content="A fantasy novel and the world beneath it. Interactive tools for a magic system derived rather than declared.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0E1A;
+  --vellum:#E8DCC3;
+  --vellum-dim:rgba(232,220,195,.62);
+  --vellum-faint:rgba(232,220,195,.38);
+  --brass:#C9A227;
+  --brass-dim:rgba(201,162,39,.38);
+  --plate:rgba(10,13,26,.74);
+  --hair:rgba(232,220,195,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--void);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,162,39,.10), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, rgba(74,63,120,.16), transparent 70%);
+  background-attachment:fixed;
+  color:var(--vellum);
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:19px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:60rem;margin:0 auto;padding:clamp(2.5rem,7vw,6rem) clamp(1.25rem,5vw,2.5rem) 4rem}
+
+/* ---- masthead ---- */
+.kicker{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.66rem;
+  letter-spacing:.34em;
+  text-transform:uppercase;
+  color:var(--brass);
+  margin:0 0 1.4rem;
+}
+h1{
+  font-size:clamp(2.9rem,9vw,5rem);
+  font-weight:500;
+  line-height:1.02;
+  letter-spacing:.005em;
+  margin:0 0 1.1rem;
+}
+.standfirst{
+  font-size:clamp(1.12rem,2.4vw,1.3rem);
+  color:var(--vellum-dim);
+  max-width:44rem;
+  margin:0 0 1rem;
+}
+.standfirst em{color:var(--vellum);font-style:italic}
+.rule{
+  height:1px;
+  background:linear-gradient(90deg,var(--brass-dim),transparent 78%);
+  border:0;
+  margin:2.9rem 0 2.4rem;
+}
+
+/* ---- section heading ---- */
+h2{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.7rem;
+  font-weight:500;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:var(--vellum-faint);
+  margin:0 0 1.6rem;
+}
+
+/* ---- the grid ---- */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(17.5rem,1fr));
+  gap:1px;
+  background:var(--hair);
+  border:1px solid var(--hair);
+}
+.card{
+  display:block;
+  background:var(--plate);
+  padding:1.6rem 1.5rem 1.7rem;
+  text-decoration:none;
+  color:inherit;
+  transition:background .18s ease, transform .18s ease;
+}
+.card:hover,.card:focus-visible{
+  background:rgba(201,162,39,.07);
+  outline:none;
+}
+.card:focus-visible{box-shadow:inset 0 0 0 2px var(--brass)}
+.num{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.62rem;
+  letter-spacing:.2em;
+  color:var(--brass);
+  display:block;
+  margin-bottom:.7rem;
+}
+.card h3{
+  font-size:1.42rem;
+  font-weight:500;
+  margin:0 0 .45rem;
+  line-height:1.18;
+}
+.card p{
+  margin:0;
+  font-size:.99rem;
+  color:var(--vellum-dim);
+  line-height:1.5;
+}
+.card .go{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:.62rem;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--vellum-faint);
+  margin-top:1rem;
+  display:block;
+  transition:color .18s ease;
+}
+.card:hover .go,.card:focus-visible .go{color:var(--brass)}
+
+/* ---- colophon ---- */
+footer{
+  margin-top:4rem;
+  padding-top:1.8rem;
+  border-top:1px solid var(--hair);
+  font-size:.92rem;
+  color:var(--vellum-faint);
+}
+footer p{margin:0 0 .6rem;max-width:44rem}
+footer a{color:var(--vellum-dim)}
+footer a:hover{color:var(--brass)}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="kicker">Read&nbsp;Penn</p>
+  <h1>The Aspect&nbsp;Cycle</h1>
+
+  <p class="standfirst">
+    A fantasy novel and the world beneath it. The magic system is <em>derived</em>
+    rather than declared: the relationships between the nineteen aspects follow from
+    one geometric law, and everything downstream &mdash; atomic structure, anatomy,
+    the writing system, the spell notation &mdash; falls out of that.
+  </p>
+  <p class="standfirst">
+    These instruments were built to check that the derivations hold. They are working
+    tools, not illustrations; every figure below is computed, and none of it was
+    assigned by hand.
+  </p>
+
+  <hr class="rule">
+
+  <h2>The Instruments</h2>
+
+  <div class="grid">
+
+    <a class="card" href="aetheric-compass.html">
+      <span class="num">I</span>
+      <h3>The Aetheric Compass</h3>
+      <p>The nineteen aspects in their seats, and every coupling between them measured off the geometry.</p>
+      <span class="go">Open &rarr;</span>
+    </a>
+
+    <a class="card" href="arcane-periodic-table.html">
+      <span class="num">II</span>
+      <h3>The Arcane Periodic Table</h3>
+      <p>The four tiers arranged in full, and the Mirror of Opposition that folds them onto one another.</p>
+      <span class="go">Open &rarr;</span>
+    </a>
+
+    <a class="card" href="arcane-atom-catalogue.html">
+      <span class="num">III</span>
+      <h3>The Arcane Atom Catalogue</h3>
+      <p>Every element rendered as an atom, shell by shell, turned in three dimensions.</p>
+      <span class="go">Open &rarr;</span>
+    </a>
+
+    <a class="card" href="magical-anatomy-plate.html">
+      <span class="num">IV</span>
+      <h3>The Magical Anatomy</h3>
+      <p>Plate I &mdash; the common mage: the kardia, the blood that carries mana, and the sites of emission.</p>
+      <span class="go">Open &rarr;</span>
+    </a>
+
+    <a class="card" href="aspect-script.html">
+      <span class="num">V</span>
+      <h3>The Aspect Script</h3>
+      <p>The glyphs, each one drawn from its aspect's position on the compass rather than invented for it.</p>
+      <span class="go">Open &rarr;</span>
+    </a>
+
+    <a class="card" href="stave-compiler.html">
+      <span class="num">VI</span>
+      <h3>The Stave Compiler</h3>
+      <p>Type a working and read back its figure &mdash; one continuous stroke, as a working must be.</p>
+      <span class="go">Open &rarr;</span>
+    </a>
+
+  </div>
+
+  <footer>
+    <p>
+      Human circulatory anatomy in Plate&nbsp;IV adapted from <em>Circulatory System en.svg</em>
+      by LadyofHats, public domain, via
+      <a href="https://commons.wikimedia.org/wiki/File:Circulatory_System_en.svg">Wikimedia&nbsp;Commons</a>.
+    </p>
+    <p>&copy; Read Penn. The Aspect Cycle and its world are the author&rsquo;s own.</p>
+  </footer>
+
+</div>
+</body>
+</html>

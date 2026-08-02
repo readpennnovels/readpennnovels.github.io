@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Arcane Atom Catalogue II</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --void: #0B0E1A;
+  --vellum: #E8DCC3;
+  --vellum-dim: rgba(232, 220, 195, 0.62);
+  --vellum-faint: rgba(232, 220, 195, 0.38);
+  --brass: #C9A227;
+  --brass-dim: rgba(201, 162, 39, 0.38);
+  --plate: rgba(10, 13, 26, 0.74);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: radial-gradient(1200px 800px at 50% 42%, #161B3A 0%, var(--void) 55%, #070912 100%);
+  color: var(--vellum);
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+canvas { display: block; touch-action: none; cursor: grab; }
+canvas.dragging { cursor: grabbing; }
+
+#cartouche {
+  position: fixed; top: 26px; left: 32px; max-width: 380px;
+  pointer-events: none; z-index: 3;
+}
+#cartouche .eyebrow { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--brass); }
+#cartouche h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 32px; line-height: 1.05; margin: 9px 0 6px;
+}
+#cartouche .sub {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-size: 16px; color: var(--vellum-dim);
+}
+
+#panel {
+  position: fixed; right: 32px; top: 26px; width: 292px;
+  padding: 16px 18px;
+  background: var(--plate);
+  border: 1px solid var(--brass-dim); border-radius: 2px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(232, 220, 195, 0.05), 0 12px 40px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+#p-tier { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); }
+#p-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600; font-size: 27px; margin: 7px 0 4px; line-height: 1.1;
+}
+#p-stability { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vellum-faint); margin-bottom: 10px; }
+#p-lore {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 15px; line-height: 1.45; color: var(--vellum-dim); margin: 0 0 12px;
+}
+#p-recipe { border-top: 1px solid rgba(232, 220, 195, 0.12); padding-top: 10px; }
+.r-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11.5px; color: var(--vellum-dim); padding: 2.5px 0;
+}
+.r-row .r-val { color: var(--vellum); display: flex; align-items: center; gap: 5px; }
+.r-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+#legend {
+  position: fixed; left: 32px; bottom: 22px; right: 348px;
+  display: flex; flex-direction: column; gap: 5px; z-index: 3;
+}
+.lg-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lg-cap {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--vellum-faint); min-width: 118px;
+}
+.lg-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px;
+  color: var(--vellum-dim);
+  background: rgba(10, 13, 26, 0.55);
+  border: 1px solid rgba(232, 220, 195, 0.14);
+  padding: 4px 9px; border-radius: 2px; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.lg-btn:hover, .lg-btn.active { color: var(--vellum); border-color: var(--brass-dim); }
+.lg-btn .dot { width: 7px; height: 7px; border-radius: 50%; }
+button:focus-visible { outline: 1px solid var(--brass); outline-offset: 2px; }
+button { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 980px) {
+  #cartouche { top: 14px; left: 16px; max-width: 210px; }
+  #cartouche h1 { font-size: 22px; }
+  #cartouche .sub { display: none; }
+  #panel { left: 16px; right: 16px; top: auto; bottom: 158px; width: auto; }
+  #legend { left: 16px; right: 16px; bottom: 12px; }
+  .lg-cap { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<header id="cartouche">
+  <div class="eyebrow">Every Mageia needs its anchor &middot; every anchor past the first is strain</div>
+  <h1>The Arcane Atom Catalogue II</h1>
+  <div class="sub">Eighteen atoms &middot; gold Mageias &middot; anchoring Proalities</div>
+</header>
+
+<aside id="panel" aria-live="polite">
+  <div id="p-tier"></div>
+  <h2 id="p-name"></h2>
+  <div id="p-stability"></div>
+  <p id="p-lore"></p>
+  <div id="p-recipe"></div>
+</aside>
+
+<nav id="legend" aria-label="Catalogue of elements"></nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   EDIT YOUR NUCLEAR PHYSICS HERE
+   Laws (derived, but overridable):
+   \u2014 Mageias   = one per ring touched. Always gold. They orbit
+     retrograde against the electrons.
+   \u2014 Proalities = one anchor per Mageia + one pin per abstract
+     aspect. Minimum one in every element: nothing else can
+     hold a Mageia to an atom. Every Proality past the first
+     is strain \u2014 hence the tiers: 1 / 2 / 3 / 4.
+   \u2014 Neutrons  = Z + [0, 1, 2, 4] by tier (strain adds mass).
+   \u2014 Electrons = Z, filling shells of capacity 2 / 8 / 8.
+   ════════════════════════════════════════════════════════════ */
+const MAGEIA_COLOR = 0xC9A227;
+
+const TIERS = [
+  { name: 'I \u00B7 The Abiding',   stability: 'Stable forever \u00B7 the common matter of the world', extraNeutrons: 0, jitter: 0 },
+  { name: 'II \u00B7 The Enduring', stability: 'Stable in isolation \u00B7 uncommon in nature',        extraNeutrons: 1, jitter: 0.15 },
+  { name: 'III \u00B7 The Restive', stability: 'Decays over years unless bound \u00B7 veins and relics', extraNeutrons: 2, jitter: 0.45 },
+  { name: 'IV \u00B7 The Fleeting', stability: 'Persists for heartbeats \u00B7 born at deaths and annihilations', extraNeutrons: 4, jitter: 1 }
+];
+
+const ELEMENTS = [
+  // ── Tier I: the gold ring stars ──
+  { name: 'Air',   Z: 1, tier: 1, rings: ['Elemental'], color: 0xBFD9E8, lore: 'The hydrogen of the cosmos: one proton, one anchoring Proality, one gold Mageia. Breath is the most abundant substance in creation.' },
+  { name: 'Fire',  Z: 2, tier: 1, rings: ['Elemental'], color: 0xE4572E, lore: 'Two protons and an appetite. Burns without being consumed at the nuclear level; only its fuel is mortal.' },
+  { name: 'Water', Z: 3, tier: 1, rings: ['Elemental'], color: 0x3E92CC, lore: 'Three protons that yield and win. The seas are one unbroken lattice of it.' },
+  { name: 'Earth', Z: 4, tier: 1, rings: ['Elemental'], color: 0x9C7A45, lore: 'Four protons in a dense, patient knot. The mountains are its slow opinion.' },
+
+  // ── Tier II: silver and blue ring stars ──
+  { name: 'Light',   Z: 5,  tier: 2, rings: ['Principle'],   color: 0xF5E7B8, lore: 'Clarity, pinned into matter by a second grain of refusal.' },
+  { name: 'Dark',    Z: 6,  tier: 2, rings: ['Principle'],   color: 0x54487A, lore: 'Privacy given weight. Mined, historically, by feel.' },
+  { name: 'Order',   Z: 7,  tier: 2, rings: ['Principle'],   color: 0x9FBFA8, lore: 'The law that lets a thing stay itself \u2014 barely staying itself.' },
+  { name: 'Entropy', Z: 8,  tier: 2, rings: ['Principle'],   color: 0xA85C68, lore: 'The tax, condensed. Handle in sealed vessels.' },
+  { name: 'Space',   Z: 9,  tier: 2, rings: ['Existential'], color: 0x5E6FA8, lore: 'Extent itself, folded small enough to hold.' },
+  { name: 'Time',    Z: 10, tier: 2, rings: ['Existential'], color: 0xC08A54, lore: 'Duration in a bottle. Ages slightly faster than its surroundings.' },
+  { name: 'Life',    Z: 11, tier: 2, rings: ['Existential'], color: 0x7FBF6B, lore: 'The whirlpool, crystallized. Warm to the touch.' },
+  { name: 'Death',   Z: 12, tier: 2, rings: ['Existential'], color: 0xB8B0A4, lore: 'The ending, made countable. Cold to the touch.' },
+
+  // ── Tier III: junctions touching the gold ring ──
+  { name: 'Electromagnetism', Z: 13, tier: 3, rings: ['Elemental', 'Principle'],   color: 0xF0C94B, lore: 'Two natures soldered: the lodestone is its common ore. Its atoms leak sparks as they decay.' },
+  { name: 'Gravity',          Z: 14, tier: 3, rings: ['Elemental', 'Principle'],   color: 0x77808F, lore: 'Weight fused to principle. Found in the deepest places, where it gathers itself.' },
+  { name: 'Mind',             Z: 15, tier: 3, rings: ['Elemental', 'Existential'], color: 0xC79FE0, lore: 'Pattern soldered to matter. Its ores are rumored to dream.' },
+  { name: 'Flesh',            Z: 16, tier: 3, rings: ['Elemental', 'Existential'], color: 0xC97B6B, lore: 'The clay that knows it is clay. Every living body is a slow-motion decay chain of it.' },
+
+  // ── Tier IV: the junction without gold ──
+  { name: 'Oblivion', Z: 17, tier: 4, rings: ['Principle', 'Existential'], color: 0xDDEBEE, lore: 'The bright scattering, caught mid-scatter. Observed only in annihilations; no vessel has held it past a breath.' },
+  { name: 'Soul',     Z: 18, tier: 4, rings: ['Principle', 'Existential'], color: 0x5C8A87, lore: 'One perfect closed shell around a nucleus that cannot hold: perfect shells around a broken heart. Occurs naturally at exactly one moment in a life.' }
+];
+
+const AETHER_ENTRY = {
+  name: 'Aether', color: 0xEAE6FA,
+  lore: 'Not an atom \u2014 a refusal. Pure Proalities cohere with themselves and nothing else: no shells, no charge, no chemistry. The Still Point in particulate form.'
+};
+
+const SHELL_RADII    = [1.6, 2.4, 3.2];
+const SHELL_CAPACITY = [2, 8, 8];
+const SHELL_SPEED    = [1.15, 0.75, 0.5];
+const RETROGRADE     = -0.8;
+/* ═══════════════════════ end of editable block ═══════════════ */
+
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ── Scene scaffolding ─────────────────────────────────────────
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+camera.position.z = 9;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+const canvasEl = renderer.domElement;
+
+const pivot = new THREE.Group();
+scene.add(pivot);
+
+scene.add(new THREE.AmbientLight(0x8890B8, 0.6));
+const coreLight = new THREE.PointLight(0xEAE6FA, 1.0, 40);
+scene.add(coreLight);
+const brassLight = new THREE.DirectionalLight(0xC9A227, 0.3);
+brassLight.position.set(5, 8, 6);
+scene.add(brassLight);
+
+// ── Shared assets ─────────────────────────────────────────────
+function haloTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,0.85)');
+  g.addColorStop(0.35, 'rgba(255,255,255,0.28)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+const HALO_TEX = haloTexture();
+
+const GEO = {
+  nucleon: new THREE.SphereGeometry(0.15, 26, 26),
+  orbiter: new THREE.SphereGeometry(0.075, 20, 20),
+  mageia:  new THREE.SphereGeometry(0.09, 20, 20)
+};
+const MAT = {
+  proton:   new THREE.MeshStandardMaterial({ color: 0xD96A3B, emissive: 0xD96A3B, emissiveIntensity: 0.22, roughness: 0.4, metalness: 0.1 }),
+  neutron:  new THREE.MeshStandardMaterial({ color: 0x7C8698, emissive: 0x7C8698, emissiveIntensity: 0.18, roughness: 0.4, metalness: 0.1 }),
+  proality: new THREE.MeshStandardMaterial({ color: 0xEAE6FA, emissive: 0xEAE6FA, emissiveIntensity: 0.7,  roughness: 0.4, metalness: 0.1 }),
+  electron: new THREE.MeshStandardMaterial({ color: 0xE8DCC3, emissive: 0xE8DCC3, emissiveIntensity: 0.35, roughness: 0.4, metalness: 0.1 }),
+  mageia:   new THREE.MeshStandardMaterial({ color: MAGEIA_COLOR, emissive: MAGEIA_COLOR, emissiveIntensity: 0.75, roughness: 0.4, metalness: 0.1 })
+};
+const RING_MAT = new THREE.MeshBasicMaterial({ color: 0xC9A227, transparent: true, opacity: 0.26 });
+
+function makeHalo(colorHex, scale) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: HALO_TEX, color: colorHex, transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  s.scale.setScalar(scale);
+  return s;
+}
+
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ── Atom construction ─────────────────────────────────────────
+let atom = null;
+let currentJitter = 0;
+
+function disposeAtom() {
+  if (!atom) return;
+  pivot.remove(atom.group);
+  atom.group.traverse(o => { if (o.isSprite) o.material.dispose(); });
+  atom = null;
+}
+
+function recipeFor(def) {
+  if (def.isAether) return { p: 0, n: 0, ae: 7, e: 0, mg: 0 };
+  const t = TIERS[def.tier - 1];
+  const mg = def.rings.length;
+  const abstract = def.rings.filter(r => r !== 'Elemental').length;
+  return {
+    p: def.Z,
+    n: def.Z + t.extraNeutrons,
+    ae: mg + abstract,       // one anchor per Mageia + one pin per abstract aspect
+    e: def.Z,
+    mg
+  };
+}
+
+function buildAtom(def) {
+  disposeAtom();
+  const r = recipeFor(def);
+  const group = new THREE.Group();
+
+  // — Nucleus —
+  const nucleus = new THREE.Group();
+  const types = [];
+  for (let i = 0; i < r.p; i++)  types.push('proton');
+  for (let i = 0; i < r.n; i++)  types.push('neutron');
+  for (let i = 0; i < r.ae; i++) types.push('proality');
+
+  const rng = mulberry32(1337 + (def.Z || 99));
+  for (let i = types.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [types[i], types[j]] = [types[j], types[i]];
+  }
+
+  const n = Math.max(types.length, 1);
+  const clusterR = 0.3 * Math.cbrt(n);
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  types.forEach((type, i) => {
+    const y = 1 - (2 * (i + 0.5)) / n;
+    const rad = Math.sqrt(Math.max(0, 1 - y * y));
+    const th = golden * i;
+    const radial = clusterR * Math.cbrt((i + 0.5) / n);
+    const pos = new THREE.Vector3(Math.cos(th) * rad, y, Math.sin(th) * rad)
+      .multiplyScalar(radial)
+      .add(new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).multiplyScalar(0.05));
+    const m = new THREE.Mesh(GEO.nucleon, MAT[type]);
+    m.position.copy(pos);
+    nucleus.add(m);
+    if (type === 'proality') {
+      const h = makeHalo(0xEAE6FA, 0.8);
+      h.position.copy(pos);
+      nucleus.add(h);
+    }
+  });
+  group.add(nucleus);
+
+  // — Shells: electrons first, then Mageias, inner \u2192 outer —
+  const seats = [];
+  let e = r.e, mg = r.mg;
+  for (let s = 0; s < SHELL_RADII.length; s++) {
+    const shellSeats = [];
+    let cap = SHELL_CAPACITY[s];
+    while (cap > 0 && e > 0)  { shellSeats.push('electron'); e--;  cap--; }
+    while (cap > 0 && mg > 0) { shellSeats.push('mageia');   mg--; cap--; }
+    seats.push(shellSeats);
+  }
+  while (mg > 0) { seats[SHELL_RADII.length - 1].push('mageia'); mg--; }
+
+  const orbiters = [];
+  seats.forEach((shellSeats, s) => {
+    if (!shellSeats.length) return;
+    const shellGroup = new THREE.Group();
+    shellGroup.rotation.set(s * 0.55, s * 0.9, s * 0.25);
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(SHELL_RADII[s], 0.006, 8, 160), RING_MAT);
+    shellGroup.add(ring);
+
+    shellSeats.forEach((kind, i) => {
+      const holder = new THREE.Group();
+      const isMg = kind === 'mageia';
+      const mesh = new THREE.Mesh(isMg ? GEO.mageia : GEO.orbiter, MAT[kind]);
+      const halo = makeHalo(isMg ? MAGEIA_COLOR : 0xE8DCC3, isMg ? 0.7 : 0.48);
+      mesh.position.x = SHELL_RADII[s];
+      halo.position.x = SHELL_RADII[s];
+      holder.add(mesh, halo);
+      holder.rotation.z = (i / shellSeats.length) * Math.PI * 2;
+      shellGroup.add(holder);
+      orbiters.push({
+        holder,
+        speed: SHELL_SPEED[s] * (isMg ? RETROGRADE : 1)
+      });
+    });
+    group.add(shellGroup);
+  });
+
+  atom = { group, nucleus, orbiters };
+  pivot.add(group);
+}
+
+// ── Panel + legend ────────────────────────────────────────────
+const el = id => document.getElementById(id);
+
+function hexCss(hex, alpha) {
+  const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function recipeRow(label, valueBuilder) {
+  const row = document.createElement('div');
+  row.className = 'r-row';
+  const l = document.createElement('span');
+  l.textContent = label;
+  const v = document.createElement('span');
+  v.className = 'r-val';
+  valueBuilder(v);
+  row.append(l, v);
+  return row;
+}
+
+let selectedDef = null;
+const legendBtnsByName = new Map();
+
+function show(def) {
+  selectedDef = def;
+  const isAe = !!def.isAether;
+  const t = isAe ? null : TIERS[def.tier - 1];
+  currentJitter = isAe ? 0.6 : t.jitter;
+
+  el('p-tier').textContent = isAe ? 'The Still Point' : t.name;
+  el('p-name').textContent = def.name;
+  el('p-stability').textContent = isAe ? 'Coheres only with itself' : t.stability;
+  el('p-lore').textContent = def.lore;
+
+  const rec = recipeFor(def);
+  const recipe = el('p-recipe');
+  recipe.innerHTML = '';
+  recipe.appendChild(recipeRow('Protons', v => { v.textContent = rec.p; }));
+  recipe.appendChild(recipeRow('Neutrons', v => { v.textContent = rec.n; }));
+  recipe.appendChild(recipeRow('Proalities', v => { v.textContent = rec.ae; }));
+  recipe.appendChild(recipeRow('Electrons', v => { v.textContent = rec.e; }));
+  recipe.appendChild(recipeRow('Mageias', v => {
+    if (!rec.mg) { v.textContent = '0'; return; }
+    for (let i = 0; i < rec.mg; i++) {
+      const d = document.createElement('span');
+      d.className = 'r-dot';
+      d.style.background = hexCss(MAGEIA_COLOR, 1);
+      d.style.boxShadow = '0 0 6px ' + hexCss(MAGEIA_COLOR, 0.9);
+      v.appendChild(d);
+    }
+  }));
+
+  legendBtnsByName.forEach((btn, name) => btn.classList.toggle('active', name === def.name));
+  buildAtom(def);
+}
+
+// Legend, grouped by tier
+{
+  const legend = el('legend');
+  const groups = [[], [], [], []];
+  ELEMENTS.forEach(d => groups[d.tier - 1].push(d));
+
+  groups.forEach((defs, gi) => {
+    const row = document.createElement('div');
+    row.className = 'lg-group';
+    const cap = document.createElement('span');
+    cap.className = 'lg-cap';
+    cap.textContent = TIERS[gi].name;
+    row.appendChild(cap);
+    defs.forEach(def => {
+      const btn = document.createElement('button');
+      btn.className = 'lg-btn';
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.background = hexCss(def.color, 1);
+      dot.style.boxShadow = '0 0 8px ' + hexCss(def.color, 0.9);
+      btn.appendChild(dot);
+      btn.appendChild(document.createTextNode(def.name === 'Electromagnetism' ? 'EM' : def.name));
+      btn.addEventListener('click', () => show(def));
+      row.appendChild(btn);
+      legendBtnsByName.set(def.name, btn);
+    });
+    legend.appendChild(row);
+  });
+
+  const row = document.createElement('div');
+  row.className = 'lg-group';
+  const cap = document.createElement('span');
+  cap.className = 'lg-cap';
+  cap.textContent = '\u2014 \u00B7 The Still Point';
+  row.appendChild(cap);
+  const btn = document.createElement('button');
+  btn.className = 'lg-btn';
+  const dot = document.createElement('span');
+  dot.className = 'dot';
+  dot.style.background = hexCss(AETHER_ENTRY.color, 1);
+  dot.style.boxShadow = '0 0 8px ' + hexCss(AETHER_ENTRY.color, 0.9);
+  btn.appendChild(dot);
+  btn.appendChild(document.createTextNode('Aether'));
+  AETHER_ENTRY.isAether = true;
+  btn.addEventListener('click', () => show(AETHER_ENTRY));
+  row.appendChild(btn);
+  el('legend').appendChild(row);
+  legendBtnsByName.set('Aether', btn);
+}
+
+show(ELEMENTS[0]);
+
+// ── Interaction: drag, pinch, zoom ────────────────────────────
+const activePointers = new Map();
+let dragging = false, lastX = 0, lastY = 0, lastPinch = 0;
+
+canvasEl.addEventListener('pointerdown', e => {
+  activePointers.set(e.pointerId, e);
+  if (activePointers.size === 1) {
+    dragging = true;
+    lastX = e.clientX; lastY = e.clientY;
+    canvasEl.classList.add('dragging');
+  } else if (activePointers.size === 2) {
+    const pts = [...activePointers.values()];
+    lastPinch = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+  }
+  canvasEl.setPointerCapture(e.pointerId);
+});
+
+canvasEl.addEventListener('pointermove', e => {
+  if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, e);
+
+  if (activePointers.size === 2) {
+    const pts = [...activePointers.values()];
+    const d = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+    if (lastPinch) {
+      camera.position.z = THREE.MathUtils.clamp(camera.position.z - (d - lastPinch) * 0.012, 4.5, 15);
+    }
+    lastPinch = d;
+    return;
+  }
+
+  if (dragging && activePointers.size === 1) {
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    pivot.rotation.y += dx * 0.005;
+    pivot.rotation.x = THREE.MathUtils.clamp(pivot.rotation.x + dy * 0.005, -1.4, 1.4);
+    lastX = e.clientX; lastY = e.clientY;
+  }
+});
+
+function endPointer(e) {
+  activePointers.delete(e.pointerId);
+  if (activePointers.size === 0) {
+    dragging = false;
+    canvasEl.classList.remove('dragging');
+    lastPinch = 0;
+  }
+}
+canvasEl.addEventListener('pointerup', endPointer);
+canvasEl.addEventListener('pointercancel', endPointer);
+
+canvasEl.addEventListener('wheel', e => {
+  e.preventDefault();
+  camera.position.z = THREE.MathUtils.clamp(camera.position.z + e.deltaY * 0.005, 4.5, 15);
+}, { passive: false });
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ── Animate ───────────────────────────────────────────────────
+let prev = performance.now();
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min((now - prev) / 1000, 0.05);
+  prev = now;
+
+  if (atom && !REDUCED) {
+    atom.nucleus.rotation.y += dt * 0.25;
+    atom.nucleus.rotation.x += dt * 0.11;
+
+    const j = currentJitter;
+    if (j > 0) {
+      const t = now * 0.001;
+      atom.nucleus.position.set(
+        Math.sin(t * 13.7) * 0.02 * j,
+        Math.sin(t * 17.3 + 1.1) * 0.02 * j,
+        Math.sin(t * 11.9 + 2.3) * 0.02 * j
+      );
+    } else {
+      atom.nucleus.position.set(0, 0, 0);
+    }
+
+    atom.orbiters.forEach(o => { o.holder.rotation.z += dt * o.speed; });
+    if (!dragging) pivot.rotation.y += dt * 0.05;
+  }
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

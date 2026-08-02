@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Aspect Script &mdash; runes derived from the compass</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--paper:#F4ECDC;--ink:#2A2219;--ink-dim:rgba(42,34,25,.66);--ink-faint:rgba(42,34,25,.42);
+ --brass:#8A6B14;--brass-dim:rgba(138,107,20,.34);
+ --gold:#8A6B14;--silver:#6E7686;--blue:#4A5A86;--mark:#A8352C;--violet:#4A3F78}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(1000px 900px at 42% 22%,#FBF5E8 0%,var(--paper) 52%,#E8DDC6 100%);
+ color:var(--ink);font-family:'IBM Plex Mono','Courier New',monospace}
+body{padding:24px 30px 44px}
+#top{max-width:660px;margin-bottom:16px}
+#top .eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--brass)}
+#top h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:31px;line-height:1.05;margin:9px 0 6px}
+#top .sub{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:16px;color:var(--ink-dim)}
+#layout{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+#stage{flex:1 1 560px;min-width:330px}
+.band{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin:14px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px}
+.cell{background:rgba(255,255,255,.34);border:1px solid rgba(42,34,25,.14);border-radius:2px;
+ padding:8px 4px 6px;cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.cell:hover,.cell.active{border-color:var(--brass);background:rgba(255,255,255,.62)}
+.cell svg{width:100%;height:auto;display:block}
+.cell .nm{font-size:10px;color:var(--ink-dim);margin-top:4px}
+#panel{flex:0 0 306px;padding:16px 18px;background:rgba(255,252,244,.76);border:1px solid var(--brass-dim);
+ border-radius:2px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 10px 30px rgba(80,60,25,.12);position:sticky;top:24px}
+#big{width:170px;height:170px;display:block;margin:0 auto 6px}
+#p-nm{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:25px;margin:2px 0 2px;text-align:center}
+#p-ring{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);text-align:center;margin-bottom:10px}
+.sec{border-top:1px solid var(--brass-dim);padding-top:9px;margin-top:9px}
+.sec-h{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:7px}
+.f-row{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--ink-dim);padding:2.5px 0}
+.f-row .v{color:var(--ink);text-align:right}
+#read{font-family:'Cormorant Garamond',Georgia,serif;font-size:14.5px;line-height:1.45;color:var(--ink-dim)}
+.act{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.ab{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass);background:rgba(255,255,255,.55);
+ border:1px solid var(--brass-dim);padding:5px 9px;border-radius:2px;cursor:pointer}
+.ab:hover{background:rgba(201,146,42,.12)}
+.ab.on{background:rgba(201,146,42,.2);color:var(--ink)}
+.legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink-dim);padding:3px 0}
+.legend svg{flex:none}
+button:focus-visible{outline:1px solid var(--brass);outline-offset:2px}
+button{-webkit-tap-highlight-color:transparent}
+@media (max-width:900px){body{padding:16px}#top h1{font-size:24px}#stage{min-width:100%}
+ #panel{flex:1 1 100%;position:static}}
+@media print{html,body{background:#fff}#panel{display:none!important}}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="eyebrow">Corporeal Studies &middot; the notation</div>
+  <h1>The Aspect Script</h1>
+  <div class="sub">Not an alphabet but a diagram: every glyph states where on the compass its magic stands</div>
+</header>
+
+<div id="layout">
+  <div id="stage"></div>
+  <aside id="panel">
+    <svg id="big" viewBox="0 0 100 100"></svg>
+    <div id="p-nm"></div>
+    <div id="p-ring"></div>
+    <div class="sec"><div class="sec-h">How this glyph is read</div><div id="read"></div></div>
+    <div class="sec"><div class="sec-h">Derivation</div><div id="p-facts"></div></div>
+    <div class="sec"><div class="sec-h">Bind two aspects</div>
+      <div class="act"><button class="ab" id="bindmode">Start a binding</button></div>
+      <div id="bindnote" class="f-row" style="display:none"></div>
+    </div>
+    <div class="sec"><div class="sec-h">Export</div>
+      <div class="act"><button class="ab" id="dl1">This glyph</button><button class="ab" id="dlall">Whole script</button></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   THE SCRIPT'S RULES — all derived from the compass, nothing invented.
+
+   A glyph is the compass sphere seen as a circle.
+     · the RIM          every glyph has one; it means "this is an aspect"
+     · the CHORD        the great ring the aspect rides, drawn at the
+                        angle it occupies within that ring
+     · the STROKE STYLE which ring: solid = Elemental, doubled =
+                        Principle, dashed = Existential
+     · the NODE         a filled dot at the aspect's own end of the chord
+     · the TICKS        Proalities — the tier, 1 to 4, cut outside the rim
+
+   Therefore: opposites are the same figure with the node at the other
+   end (a point reflection). Kin share a stroke style. Junction aspects
+   carry two chords, because they ride two rings. Aether has no chord at
+   all — it has no direction to state.
+   ════════════════════════════════════════════════════════════════════ */
+
+const RINGS = {
+  Elemental:   { style:'solid',  color:'var(--gold)',   label:'Elemental Ring' },
+  Principle:   { style:'double', color:'var(--silver)', label:'Ring of Principle' },
+  Existential: { style:'dashed', color:'var(--blue)',   label:'Existential Ring' }
+};
+
+// angle = position within its own ring; opposites differ by 180
+const ELEMENTS = [
+  { name:'Air',    ring:'Elemental',   angle:45,  tier:1, opp:'Earth' },
+  { name:'Water',  ring:'Elemental',   angle:135, tier:1, opp:'Fire'  },
+  { name:'Earth',  ring:'Elemental',   angle:225, tier:1, opp:'Air'   },
+  { name:'Fire',   ring:'Elemental',   angle:315, tier:1, opp:'Water' },
+
+  { name:'Light',  ring:'Principle',   angle:45,  tier:2, opp:'Dark'    },
+  { name:'Order',  ring:'Principle',   angle:135, tier:2, opp:'Entropy' },
+  { name:'Dark',   ring:'Principle',   angle:225, tier:2, opp:'Light'   },
+  { name:'Entropy',ring:'Principle',   angle:315, tier:2, opp:'Order'   },
+
+  { name:'Space',  ring:'Existential', angle:45,  tier:2, opp:'Time'  },
+  { name:'Life',   ring:'Existential', angle:135, tier:2, opp:'Death' },
+  { name:'Time',   ring:'Existential', angle:225, tier:2, opp:'Space' },
+  { name:'Death',  ring:'Existential', angle:315, tier:2, opp:'Life'  }
+];
+
+// junctions ride two rings; angle is the axis they sit on
+const JUNCTIONS = [
+  { name:'Mind',   rings:['Elemental','Existential'], angle:90,  tier:3, opp:'Flesh' },
+  { name:'Flesh',  rings:['Elemental','Existential'], angle:270, tier:3, opp:'Mind'  },
+  { name:'Electromagnetism', short:'EM', rings:['Elemental','Principle'], angle:0,   tier:3, opp:'Gravity' },
+  { name:'Gravity',rings:['Elemental','Principle'],   angle:180, tier:3, opp:'Electromagnetism' },
+  { name:'Oblivion',rings:['Principle','Existential'],angle:315, tier:4, opp:'Soul' },
+  { name:'Soul',   rings:['Principle','Existential'], angle:135, tier:4, opp:'Oblivion' }
+];
+
+const AETHER = { name:'Aether', tier:1, aether:true };
+const ALL = [...ELEMENTS, ...JUNCTIONS, AETHER];
+const byName = new Map(ALL.map(e => [e.name, e]));
+/* ══════════════════════ end of the rules ══════════════════════════ */
+
+const NS='http://www.w3.org/2000/svg', $=id=>document.getElementById(id);
+const C=50, R=34;
+const mk=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const P=(deg,r=R)=>[C+r*Math.cos(-deg*Math.PI/180), C+r*Math.sin(-deg*Math.PI/180)];
+
+function chord(g, ring, angle, dim){
+  const st=RINGS[ring], [x1,y1]=P(angle), [x2,y2]=P(angle+180);
+  const base={stroke:st.color, 'stroke-linecap':'round', opacity: dim?0.5:1};
+  if(st.style==='double'){
+    const dx=(y2-y1), dy=-(x2-x1), L=Math.hypot(dx,dy)||1, o=1.5;
+    for(const s of [1,-1])
+      g.appendChild(mk('line',{...base, x1:x1+s*o*dx/L, y1:y1+s*o*dy/L,
+                               x2:x2+s*o*dx/L, y2:y2+s*o*dy/L, 'stroke-width':1.3}));
+  } else {
+    g.appendChild(mk('line',{...base, x1,y1,x2,y2, 'stroke-width': st.style==='dashed'?1.9:2.4,
+      ...(st.style==='dashed'?{'stroke-dasharray':'5 3.4'}:{})}));
+  }
+}
+
+function glyph(el, opts={}){
+  const g=mk('g',{});
+  g.appendChild(mk('circle',{cx:C, cy:C, r:R, fill:'none',
+    stroke:'var(--ink)', 'stroke-width':1.5, opacity:.72}));
+
+  if(el.aether){
+    for(let i=0;i<12;i++){
+      const [x1,y1]=P(i*30, R+2.5), [x2,y2]=P(i*30, R+6);
+      g.appendChild(mk('line',{x1,y1,x2,y2,stroke:'var(--violet)','stroke-width':1,opacity:.5}));
+    }
+    g.appendChild(mk('circle',{cx:C, cy:C, r:4.6, fill:'var(--violet)'}));
+    return g;
+  }
+
+  const rings = el.rings || [el.ring];
+  rings.forEach(r => chord(g, r, el.angle, false));
+
+  // node: the aspect's own end of the chord
+  const [nx,ny]=P(el.angle);
+  g.appendChild(mk('circle',{cx:nx, cy:ny, r:5.2, fill:'var(--ink)'}));
+  // the opposite end left open — the mouth its opposite fills
+  const [ox,oy]=P(el.angle+180);
+  g.appendChild(mk('circle',{cx:ox, cy:oy, r:3.4, fill:'var(--paper)',
+    stroke:'var(--ink)', 'stroke-width':1.2}));
+
+  // Proality ticks outside the rim, at the node
+  for(let i=0;i<el.tier;i++){
+    const a=el.angle + (i-(el.tier-1)/2)*11;
+    const [x1,y1]=P(a, R+3), [x2,y2]=P(a, R+8);
+    g.appendChild(mk('line',{x1,y1,x2,y2, stroke:'var(--brass)', 'stroke-width':1.4}));
+  }
+
+  if(opts.bindWith){
+    const b=opts.bindWith;
+    (b.rings||[b.ring]).forEach(r => chord(g, r, b.angle, true));
+    const [bx,by]=P(b.angle);
+    g.appendChild(mk('circle',{cx:bx, cy:by, r:4.4, fill:'none',
+      stroke:'var(--mark)', 'stroke-width':2}));
+  }
+  return g;
+}
+
+/* ── render the sheet ─────────────────────────────────────────────── */
+const BANDS=[
+  ['The Elemental Ring', ELEMENTS.filter(e=>e.ring==='Elemental')],
+  ['The Ring of Principle', ELEMENTS.filter(e=>e.ring==='Principle')],
+  ['The Existential Ring', ELEMENTS.filter(e=>e.ring==='Existential')],
+  ['The Junctions \u2014 two rings each', JUNCTIONS],
+  ['The Still Point', [AETHER]]
+];
+const cellByName=new Map();
+BANDS.forEach(([title, list])=>{
+  const h=document.createElement('div'); h.className='band'; h.textContent=title;
+  const grid=document.createElement('div'); grid.className='grid';
+  list.forEach(el=>{
+    const c=document.createElement('button'); c.className='cell';
+    const s=mk('svg',{viewBox:'0 0 100 100'}); s.appendChild(glyph(el));
+    const n=document.createElement('div'); n.className='nm'; n.textContent=el.short||el.name;
+    c.append(s,n);
+    c.addEventListener('click',()=>pick(el));
+    grid.appendChild(c); cellByName.set(el.name,c);
+  });
+  $('stage').append(h,grid);
+});
+
+/* ── panel ────────────────────────────────────────────────────────── */
+let current=AETHER, bindMode=false, bindWith=null;
+
+function row(k,v){const r=document.createElement('div');r.className='f-row';
+  const a=document.createElement('span');a.textContent=k;
+  const b=document.createElement('span');b.className='v';b.textContent=v;
+  r.append(a,b);return r;}
+
+function readingFor(el){
+  if(el.aether) return 'A rim with no chord. Aether states no direction because it has none \u2014 the ticks all round the edge are the refusal it turns on every aspect alike, and the node sits at the centre where nothing else can go.';
+  const st=RINGS[(el.rings||[el.ring])[0]].style;
+  const styleWord={solid:'a single solid chord', double:'a doubled chord', dashed:'a broken chord'}[st];
+  if(el.rings) return `Two chords crossing: this aspect rides both the ${RINGS[el.rings[0]].label} and the ${RINGS[el.rings[1]].label}, which is what a junction is. The filled node marks its end; the open node opposite is ${el.opp}. Four ticks would mean four Proalities \u2014 here there are ${el.tier}.`;
+  return `${styleWord[0].toUpperCase()+styleWord.slice(1)} tells you the ring: ${RINGS[el.ring].label}. The chord's angle is the aspect's seat within that ring, and the filled node marks which end is this one. The open node opposite is ${el.opp} \u2014 the same figure read backwards. ${el.tier} tick${el.tier===1?'':'s'} outside the rim: ${el.tier} Proalit${el.tier===1?'y':'ies'}.`;
+}
+
+function pick(el){
+  if(bindMode && el!==current && !el.aether && !current.aether){
+    bindWith=el; bindMode=false; $('bindmode').classList.remove('on');
+    $('bindmode').textContent='Start a binding';
+    $('bindnote').style.display='flex';
+    $('bindnote').innerHTML=`<span>Bound</span><span class="v">${current.short||current.name} \u00b7 ${el.short||el.name}</span>`;
+    draw(); return;
+  }
+  current=el; bindWith=null; $('bindnote').style.display='none';
+  draw();
+}
+
+function draw(){
+  const el=current;
+  $('big').textContent='';
+  $('big').appendChild(glyph(el, {bindWith}));
+  $('p-nm').textContent=el.name + (bindWith? ' \u2014 bound' : '');
+  $('p-ring').textContent = el.aether ? 'The Still Point'
+    : (el.rings ? 'Junction \u00b7 ' + el.rings.map(r=>RINGS[r].label).join(' \u00d7 ')
+                : RINGS[el.ring].label);
+  $('read').textContent = bindWith
+    ? `A binding: ${el.name} carries the chord of ${bindWith.name} laid over its own, its node ringed rather than filled. A reader takes the filled node as the governing aspect and the ringed one as what it is bound to \u2014 so this mark is not the same as the reverse.`
+    : readingFor(el);
+  const f=$('p-facts'); f.innerHTML='';
+  if(!el.aether){
+    f.appendChild(row('Seat in ring', el.angle + '\u00b0'));
+    f.appendChild(row('Opposite', el.opp));
+    f.appendChild(row('Chords', (el.rings||[el.ring]).length));
+  } else {
+    f.appendChild(row('Seat', 'centre'));
+    f.appendChild(row('Opposite', 'none'));
+  }
+  f.appendChild(row('Proalities', el.tier));
+  cellByName.forEach((c,n)=>c.classList.toggle('active', n===el.name));
+}
+
+$('bindmode').addEventListener('click',()=>{
+  if(current.aether){ $('bindnote').style.display='flex';
+    $('bindnote').innerHTML='<span>Aether binds to nothing</span><span class="v">\u2014</span>'; return; }
+  bindMode=!bindMode; bindWith=null;
+  $('bindmode').classList.toggle('on',bindMode);
+  $('bindmode').textContent=bindMode?'Now pick the second aspect':'Start a binding';
+  draw();
+});
+
+function save(svgEl,name){
+  const c=svgEl.cloneNode(true);
+  c.setAttribute('xmlns',NS);
+  const css=`circle,line{vector-effect:non-scaling-stroke}`;
+  const st=document.createElementNS(NS,'style'); st.textContent=css;
+  c.insertBefore(st,c.firstChild);
+  let out=c.outerHTML
+    .replace(/var\(--gold\)/g,'#8A6B14').replace(/var\(--silver\)/g,'#6E7686')
+    .replace(/var\(--blue\)/g,'#4A5A86').replace(/var\(--ink\)/g,'#2A2219')
+    .replace(/var\(--violet\)/g,'#4A3F78').replace(/var\(--brass\)/g,'#8A6B14')
+    .replace(/var\(--paper\)/g,'#F4ECDC').replace(/var\(--mark\)/g,'#A8352C');
+  const b=new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+out],{type:'image/svg+xml'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+$('dl1').addEventListener('click',()=>save($('big'), current.name.toLowerCase()+'-glyph.svg'));
+$('dlall').addEventListener('click',()=>{
+  const cols=5, cell=110, rows=Math.ceil(ALL.length/cols);
+  const s=mk('svg',{viewBox:`0 0 ${cols*cell} ${rows*cell+18}`});
+  ALL.forEach((el,i)=>{
+    const g=mk('g',{transform:`translate(${(i%cols)*cell},${Math.floor(i/cols)*cell}) scale(${cell/100})`});
+    g.appendChild(glyph(el)); s.appendChild(g);
+    const t=mk('text',{x:(i%cols)*cell+cell/2, y:Math.floor(i/cols)*cell+cell-3,
+      'text-anchor':'middle','font-family':'Georgia,serif','font-size':9,fill:'#2A2219'});
+    t.textContent=el.short||el.name; s.appendChild(t);
+  });
+  save(s,'aspect-script.svg');
+});
+
+pick(byName.get('Fire'));
+</script>
+</body>
+</html>
