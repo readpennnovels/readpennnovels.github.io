@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helvaia — The Aspect Cycle</title>
+<meta name="description" content="The world of Helvaia: a map of its states, waters and coasts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0E1A; --vellum:#E8DCC3;
+  --vellum-dim:rgba(232,220,195,.62); --vellum-faint:rgba(232,220,195,.38);
+  --brass:#C9A227; --hair:rgba(232,220,195,.16);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--void);
+  color:var(--vellum);
+  font-family:'Cormorant Garamond',Georgia,serif;
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+header{
+  flex:0 0 auto;display:flex;flex-wrap:wrap;gap:.7rem;align-items:baseline;
+  padding:.9rem clamp(1rem,3vw,2rem);border-bottom:1px solid var(--hair);
+}
+.back{
+  font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--brass);text-decoration:none;
+}
+.back:hover{color:var(--vellum)}
+h1{font-size:1.5rem;font-weight:500;margin:0;letter-spacing:.02em}
+.sub{font-size:.92rem;color:var(--vellum-faint);margin:0}
+.spacer{flex:1 1 auto}
+
+.stage{
+  flex:1 1 auto;position:relative;overflow:hidden;cursor:grab;
+  background:#0B0E1A;touch-action:none;
+}
+.stage.dragging{cursor:grabbing}
+#pan{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
+#map{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
+
+.controls{
+  position:absolute;right:clamp(.7rem,2vw,1.4rem);bottom:clamp(.7rem,2vw,1.4rem);
+  display:flex;flex-direction:column;gap:1px;background:var(--hair);
+  border:1px solid var(--hair);border-radius:3px;overflow:hidden;
+}
+.controls button{
+  font-family:'IBM Plex Mono',monospace;font-size:.85rem;line-height:1;
+  width:2.4rem;height:2.4rem;border:0;background:rgba(11,14,26,.92);
+  color:var(--vellum-dim);cursor:pointer;
+}
+.controls button:hover{background:rgba(201,162,39,.16);color:var(--vellum)}
+.controls button:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+.controls button.wide{font-size:.55rem;letter-spacing:.1em}
+
+.hint{
+  position:absolute;left:clamp(.7rem,2vw,1.4rem);bottom:clamp(.7rem,2vw,1.4rem);
+  font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;
+  color:var(--vellum-faint);background:rgba(11,14,26,.78);padding:.5rem .7rem;
+  border:1px solid var(--hair);border-radius:3px;pointer-events:none;
+  transition:opacity .5s;
+}
+.hint.gone{opacity:0}
+.zoom{
+  position:absolute;left:clamp(.7rem,2vw,1.4rem);top:clamp(.7rem,2vw,1.4rem);
+  font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;
+  color:var(--vellum-faint);background:rgba(11,14,26,.78);padding:.4rem .6rem;
+  border:1px solid var(--hair);border-radius:3px;pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){#pan{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="./">&larr; The Aspect Cycle</a>
+  <h1>Helvaia</h1>
+  <p class="sub">States, waters and coasts</p>
+  <span class="spacer"></span>
+</header>
+
+<div class="stage" id="stage">
+  <div id="pan"><img id="map" src="helvaia.svg" alt="A map of the world of Helvaia" draggable="false"></div>
+  <div class="zoom" id="zoomLabel">100%</div>
+  <div class="hint" id="hint">drag to pan · scroll to zoom</div>
+  <div class="controls">
+    <button id="in"  title="Zoom in (+)"  aria-label="Zoom in">+</button>
+    <button id="out" title="Zoom out (−)" aria-label="Zoom out">&minus;</button>
+    <button id="fit" class="wide" title="Fit to window (0)" aria-label="Fit map to window">FIT</button>
+  </div>
+</div>
+
+<script>
+const stage = document.getElementById('stage');
+const pan   = document.getElementById('pan');
+const img   = document.getElementById('map');
+const label = document.getElementById('zoomLabel');
+const hint  = document.getElementById('hint');
+
+let scale = 1, x = 0, y = 0, base = 1, natW = 0, natH = 0;
+const MIN = 0.2, MAX = 12;
+
+function apply(){
+  pan.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  label.textContent = Math.round(scale / base * 100) + '%';
+}
+
+function fit(){
+  if (!natW) return;
+  const r = stage.getBoundingClientRect();
+  base = scale = Math.min(r.width / natW, r.height / natH);
+  x = (r.width  - natW * scale) / 2;
+  y = (r.height - natH * scale) / 2;
+  apply();
+}
+
+function zoomAt(cx, cy, factor){
+  const next = Math.min(MAX * base, Math.max(MIN * base, scale * factor));
+  if (next === scale) return;
+  // keep the point under the cursor fixed
+  x = cx - (cx - x) * (next / scale);
+  y = cy - (cy - y) * (next / scale);
+  scale = next;
+  apply();
+}
+
+img.addEventListener('load', () => {
+  natW = img.naturalWidth; natH = img.naturalHeight;
+  img.style.width = natW + 'px'; img.style.height = natH + 'px';
+  fit();
+});
+if (img.complete && img.naturalWidth) img.dispatchEvent(new Event('load'));
+addEventListener('resize', fit);
+
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = stage.getBoundingClientRect();
+  zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.13 : 1 / 1.13);
+  hint.classList.add('gone');
+}, {passive:false});
+
+// pointer drag, and two-finger pinch on touch
+const pts = new Map();
+let last = null, pinch = 0;
+stage.addEventListener('pointerdown', e => {
+  stage.setPointerCapture(e.pointerId);
+  pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (pts.size === 1){ last = {x:e.clientX, y:e.clientY}; stage.classList.add('dragging'); }
+  hint.classList.add('gone');
+});
+stage.addEventListener('pointermove', e => {
+  if (!pts.has(e.pointerId)) return;
+  pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  const p = [...pts.values()];
+  if (p.length === 2){
+    const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+    const r = stage.getBoundingClientRect();
+    if (pinch) zoomAt((p[0].x + p[1].x)/2 - r.left, (p[0].y + p[1].y)/2 - r.top, d / pinch);
+    pinch = d;
+  } else if (last){
+    x += e.clientX - last.x; y += e.clientY - last.y;
+    last = {x:e.clientX, y:e.clientY};
+    apply();
+  }
+});
+function release(e){
+  pts.delete(e.pointerId);
+  if (pts.size < 2) pinch = 0;
+  if (pts.size === 0){ last = null; stage.classList.remove('dragging'); }
+  else last = [...pts.values()][0];
+}
+stage.addEventListener('pointerup', release);
+stage.addEventListener('pointercancel', release);
+
+document.getElementById('in').onclick  = () => { const r = stage.getBoundingClientRect(); zoomAt(r.width/2, r.height/2, 1.35); };
+document.getElementById('out').onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(r.width/2, r.height/2, 1/1.35); };
+document.getElementById('fit').onclick = fit;
+
+addEventListener('keydown', e => {
+  const r = stage.getBoundingClientRect(), step = 70;
+  if (e.key === '+' || e.key === '=') zoomAt(r.width/2, r.height/2, 1.35);
+  else if (e.key === '-' || e.key === '_') zoomAt(r.width/2, r.height/2, 1/1.35);
+  else if (e.key === '0') fit();
+  else if (e.key === 'ArrowLeft')  { x += step; apply(); }
+  else if (e.key === 'ArrowRight') { x -= step; apply(); }
+  else if (e.key === 'ArrowUp')    { y += step; apply(); }
+  else if (e.key === 'ArrowDown')  { y -= step; apply(); }
+  else return;
+  e.preventDefault();
+});
+
+setTimeout(() => hint.classList.add('gone'), 6000);
+</script>
+</body>
+</html>
