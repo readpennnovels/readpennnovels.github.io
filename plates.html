@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plates — The Aspect Cycle</title>
+<meta name="description" content="Two hundred and twelve pen-and-ink studies: beasts, peoples and plants, drawn as an explorer's field sketches.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0E1A; --vellum:#E8DCC3;
+  --vellum-dim:rgba(232,220,195,.62); --vellum-faint:rgba(232,220,195,.38);
+  --brass:#C9A227; --plate:rgba(10,13,26,.74); --hair:rgba(232,220,195,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--void);
+  background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(201,162,39,.10),transparent 70%);
+  background-attachment:fixed;
+  color:var(--vellum);
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:78rem;margin:0 auto;padding:clamp(2rem,5vw,4rem) clamp(1.1rem,4vw,2.5rem) 4rem}
+.back{
+  font-family:'IBM Plex Mono',monospace;font-size:.64rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--brass);text-decoration:none;display:inline-block;margin-bottom:1.5rem;
+}
+.back:hover{color:var(--vellum)}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:500;line-height:1.05;margin:0 0 1rem}
+.standfirst{color:var(--vellum-dim);max-width:44rem;margin:0 0 .9rem}
+.note{
+  font-size:.95rem;color:var(--vellum-faint);max-width:44rem;margin:0;
+  border-left:1px solid var(--hair);padding-left:1rem;
+}
+
+.controls{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin:2.4rem 0 1.4rem}
+button,input{
+  font-family:'IBM Plex Mono',monospace;font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;
+  padding:.5rem .85rem;border:1px solid var(--vellum-faint);background:none;color:var(--vellum-dim);
+  cursor:pointer;border-radius:2px;
+}
+input{text-transform:none;letter-spacing:0;cursor:auto}
+button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--void)}
+button:hover{color:var(--vellum);border-color:var(--vellum-dim)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.tally{font-family:'IBM Plex Mono',monospace;font-size:.64rem;color:var(--vellum-faint);margin-left:auto}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;
+  background:var(--hair);border:1px solid var(--hair)}
+figure{margin:0;background:var(--plate);padding:.45rem;cursor:zoom-in;transition:background .16s}
+figure:hover{background:rgba(201,162,39,.07)}
+figure img{width:100%;aspect-ratio:1;object-fit:contain;display:block;background:transparent}
+figcaption{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.04em;
+  color:var(--vellum-faint);margin-top:.35rem;text-align:center;word-break:break-all}
+figure.hide{display:none}
+
+dialog{border:0;padding:0;background:transparent;max-width:96vw}
+dialog::backdrop{background:rgba(4,5,10,.94)}
+dialog img{max-width:92vw;max-height:84vh;display:block;margin:0 auto}
+dialog p{font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--brass);text-align:center;margin:.9rem 0 0}
+.empty{color:var(--vellum-faint);padding:3rem 0;text-align:center;grid-column:1/-1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="./">&larr; The Aspect Cycle</a>
+  <h1>Plates</h1>
+  <p class="standfirst">
+    Two hundred and twelve pen-and-ink studies &mdash; beasts, peoples and plants,
+    drawn as though recorded first-hand by a travelling naturalist who saw only the
+    outside of things.
+  </p>
+  <p class="note">
+    These are studies, not the catalogue. The subjects are borrowed and provisional,
+    stood in to settle the drawing hand before the real bestiary is written. Take
+    them as handwriting samples rather than entries.
+  </p>
+
+  <div class="controls">
+    <button class="tab" data-c="all" aria-pressed="true">All</button>
+    <button class="tab" data-c="beasts" aria-pressed="false">Beasts</button>
+    <button class="tab" data-c="peoples" aria-pressed="false">Peoples</button>
+    <button class="tab" data-c="plants" aria-pressed="false">Plants</button>
+    <input id="q" type="search" placeholder="filter…" size="12" aria-label="Filter plates by name">
+    <span class="tally"><b id="shown">—</b> shown</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<dialog id="lb"><img id="lbimg" alt=""><p id="lbcap"></p></dialog>
+
+<script>
+const grid = document.getElementById('grid');
+const tally = document.getElementById('shown');
+let coll = 'all';
+
+fetch('plates/manifest.json')
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(m => {
+    const frag = document.createDocumentFragment();
+    for (const [c, names] of Object.entries(m)) {
+      for (const n of names) {
+        const f = document.createElement('figure');
+        f.dataset.c = c; f.dataset.n = n; f.dataset.k = c + '-' + n;
+        f.innerHTML = '<img loading="lazy" src="plates/t/' + c + '-' + n + '.webp" alt="' + n + '">'
+                    + '<figcaption>' + n + '</figcaption>';
+        frag.appendChild(f);
+      }
+    }
+    grid.appendChild(frag);
+    filter();
+  })
+  .catch(() => { grid.innerHTML = '<p class="empty">The plates could not be loaded.</p>'; });
+
+function filter() {
+  const v = document.getElementById('q').value.trim().toLowerCase();
+  let n = 0;
+  document.querySelectorAll('figure').forEach(f => {
+    const hide = (coll !== 'all' && f.dataset.c !== coll) || (v && !f.dataset.n.includes(v));
+    f.classList.toggle('hide', hide);
+    if (!hide) n++;
+  });
+  tally.textContent = n;
+}
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  coll = t.dataset.c;
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-pressed', x === t));
+  filter();
+});
+document.getElementById('q').oninput = filter;
+
+const lb = document.getElementById('lb');
+grid.onclick = e => {
+  const f = e.target.closest('figure');
+  if (!f) return;
+  document.getElementById('lbimg').src = 'plates/f/' + f.dataset.k + '.webp';
+  document.getElementById('lbimg').alt = f.dataset.n;
+  document.getElementById('lbcap').textContent = f.dataset.n + ' · ' + f.dataset.c;
+  lb.showModal();
+};
+lb.onclick = () => lb.close();
+</script>
+</body>
+</html>
