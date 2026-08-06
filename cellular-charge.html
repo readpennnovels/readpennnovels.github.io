@@ -123,6 +123,14 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
 
   <h2>Aether is not chosen</h2>
   <p class="note">
+    Every atom sits at <strong>its own seat on the compass</strong> &mdash; the same
+    arrangement the kardia holds, carried down into every cell of the body. The
+    figure above is drawn from the compass&rsquo;s own coordinates, viewed from
+    above; near seats are brighter than far ones. Note the compass is an armillary
+    in three dimensions, so any flat view of it foreshortens &mdash; this angle is
+    simply the one that separates all sixteen seats without any two merging.
+  </p>
+  <p class="note">
     Aether is never acquired and never counted separately. The Aether in a cell
     <strong>equals the count of that cell&rsquo;s highest pair</strong> &mdash; an
     Apprentice has one of each aspect and one Aether, a Master has a hundred and a
@@ -150,16 +158,27 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
 </div>
 
 <script>
+// Positions are the compass's own — lat/long taken from aetheric-compass.html.
+// Atoms bond in the orientation the kardia holds them in, so a cell is a compass.
 const ASPECTS = [
-  ['Air','#BFD9E8'], ['Earth','#9C7A45'],
-  ['Water','#3E92CC'], ['Fire','#E4572E'],
-  ['Life','#7FBF6B'], ['Death','#B8B0A4'],
-  ['Light','#F5E7B8'], ['Dark','#54487A'],
-  ['Order','#9FBFA8'], ['Entropy','#A85C68'],
-  ['Space','#5E6FA8'], ['Time','#C08A54'],
-  ['Mind','#C79FE0'], ['Flesh','#C97B6B'],
-  ['Electromagnetism','#F0C94B'], ['Gravity','#77808F']
+  ['Air','#BFD9E8', 45,  90], ['Earth','#9C7A45', -45, 270],
+  ['Water','#3E92CC', 45, 270], ['Fire','#E4572E', -45,  90],
+  ['Life','#7FBF6B', 45, 180], ['Death','#B8B0A4', -45,   0],
+  ['Light','#F5E7B8',  0,  45], ['Dark','#54487A',   0, 225],
+  ['Order','#9FBFA8',  0, 135], ['Entropy','#A85C68', 0, 315],
+  ['Space','#5E6FA8', 45,   0], ['Time','#C08A54',  -45, 180],
+  ['Mind','#C79FE0',  90,   0], ['Flesh','#C97B6B', -90,   0],
+  ['Electromagnetism','#F0C94B', 0, 90], ['Gravity','#77808F', 0, 270]
 ];
+
+// project a compass lat/long onto the drawing, viewed from slightly above
+const TILT = 58*Math.PI/180;   // the view that best separates the seats
+function seat(lat, lon, R){
+  const la=lat*Math.PI/180, lo=lon*Math.PI/180;
+  const x=Math.cos(la)*Math.sin(lo), y=Math.sin(la), z=Math.cos(la)*Math.cos(lo);
+  return [ x*R, (-(y*Math.cos(TILT) - z*Math.sin(TILT)))*R,
+           y*Math.sin(TILT) + z*Math.cos(TILT) ];   // third value = depth
+}
 const AETHER = '#EAE6FA';
 const CELLS_PER_MM3 = 3.7e13 / 7.0e7;
 
@@ -192,39 +211,56 @@ function draw(){
   ctx.restore();
 
   const list = held();
-  // how many dots we actually draw — one per atom up to a cap, then it's a field
   const perAspect = rank;
-  const CAP = 90;
+  const CAP = 60;
   const drawn = Math.min(perAspect, CAP);
   const abbreviated = perAspect > CAP;
 
-  const r = rng(1234 + list.length*7 + rank);
-  const all = [];
-  list.forEach(([name,col],i)=>{
-    for(let k=0;k<drawn;k++) all.push([col, name]);
-  });
-  for(let k=0;k<drawn;k++) all.push([AETHER,'Aether']);
+  const R = Math.min(rx, ry) * 0.66;     // compass radius inside the cell
+  const r = rng(97 + list.length*13 + rank);
 
-  // scatter inside the ellipse, avoiding the nucleus
-  for(const [col] of all){
-    let x,y,tries=0;
-    do{
-      const a=r()*Math.PI*2, rad=Math.sqrt(r());
-      x=cx+Math.cos(a)*rx*0.93*rad; y=cy+Math.sin(a)*ry*0.93*rad;
-      tries++;
-    }while(tries<8 && Math.hypot((x-(cx-W*0.05))/(rx*0.32),(y-(cy+H*0.02))/(ry*0.32))<1);
+  // faint ring guides, so the compass structure is legible
+  ctx.save();
+  ctx.strokeStyle='rgba(232,220,195,.07)'; ctx.lineWidth=1;
+  for(const [rot,sq] of [[0,1],[Math.PI/2,0.42],[0,0.42]]){
+    ctx.beginPath();
+    ctx.ellipse(cx,cy, R, R*(sq===1?Math.cos(TILT):sq), rot, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // gather every atom at its own seat, then paint back-to-front by depth
+  const atoms=[];
+  list.forEach(([name,col,lat,lon])=>{
+    const [sx,sy,depth]=seat(lat,lon,R);
+    for(let k=0;k<drawn;k++){
+      const a=r()*Math.PI*2, rad=Math.sqrt(r())*R*0.085;  // tight enough that seats never merge
+      atoms.push([cx+sx+Math.cos(a)*rad, cy+sy+Math.sin(a)*rad, col, depth]);
+    }
+  });
+  // Aether sits at the centre — directionless, and it keeps the middle of the
+  // armillary occupied in a body the way it is empty in the compass.
+  for(let k=0;k<drawn;k++){
+    const a=r()*Math.PI*2, rad=Math.sqrt(r())*R*0.075;
+    atoms.push([cx+Math.cos(a)*rad, cy+Math.sin(a)*rad, AETHER, 0]);
+  }
+
+  atoms.sort((p,q)=>p[3]-q[3]);
+  for(const [x,y,col,depth] of atoms){
+    const near = (depth+1)/2;                       // 0 far, 1 near
     ctx.beginPath();
     ctx.fillStyle=col;
-    ctx.globalAlpha = abbreviated ? 0.55 : 0.9;
-    ctx.arc(x,y, abbreviated?2.4:3.4, 0, Math.PI*2);
+    ctx.globalAlpha = (abbreviated?0.5:0.85) * (0.45 + 0.55*near);
+    ctx.arc(x,y, (abbreviated?2.2:3.2) * (0.72 + 0.28*near), 0, Math.PI*2);
     ctx.fill();
   }
   ctx.globalAlpha=1;
 
   document.getElementById('cap').textContent =
-    abbreviated
+    (abbreviated
       ? `one cell — ${CAP} of ${perAspect.toLocaleString()} shown per aspect`
-      : `one cell — every atom shown`;
+      : `one cell — every atom shown`)
+    + ` · atoms sit at their compass seats, Aether at the centre`;
 
   // table
   const tb=document.getElementById('tb');
