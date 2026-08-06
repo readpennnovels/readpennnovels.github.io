@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Charge of a Cell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#0B0E1A; --vellum:#E8DCC3;
+  --vellum-dim:rgba(232,220,195,.62); --vellum-faint:rgba(232,220,195,.38);
+  --brass:#C9A227; --plate:rgba(10,13,26,.74); --hair:rgba(232,220,195,.16);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--void);
+  background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(201,162,39,.09),transparent 70%);
+  background-attachment:fixed;
+  color:var(--vellum);
+  font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:64rem;margin:0 auto;padding:clamp(2rem,5vw,4rem) clamp(1.1rem,4vw,2.5rem) 5rem}
+.back{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--brass);text-decoration:none;display:inline-block;margin-bottom:1.4rem}
+.back:hover{color:var(--vellum)}
+h1{font-size:clamp(2rem,5.5vw,3rem);font-weight:500;line-height:1.06;margin:0 0 .8rem}
+.standfirst{color:var(--vellum-dim);max-width:44rem;margin:0 0 1.6rem}
+h2{font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:500;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--vellum-faint);margin:2.6rem 0 1rem}
+
+.controls{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.4rem}
+button{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;
+  text-transform:uppercase;padding:.5rem .8rem;border:1px solid var(--vellum-faint);
+  background:none;color:var(--vellum-dim);cursor:pointer;border-radius:2px}
+button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--void)}
+button:hover{color:var(--vellum)}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.lbl{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--vellum-faint);margin-right:.2rem}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,17rem);gap:1px;
+  background:var(--hair);border:1px solid var(--hair)}
+@media (max-width:720px){.stage{grid-template-columns:1fr}}
+.cell,.side{background:var(--plate);padding:1.2rem}
+canvas{display:block;width:100%;height:auto;background:transparent}
+.cap{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;
+  color:var(--vellum-faint);text-align:center;margin-top:.6rem}
+
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:.34rem .5rem;border-bottom:1px solid var(--hair)}
+th{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--vellum-faint);font-weight:400}
+td.n{text-align:right;font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',monospace;font-size:.78rem}
+.dot{display:inline-block;width:.62rem;height:.62rem;border-radius:50%;margin-right:.45rem;vertical-align:-1px}
+.total{color:var(--brass);font-weight:500}
+p.note{font-size:.94rem;color:var(--vellum-dim);max-width:44rem}
+code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
+.wide{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back" href="./">&larr; The Aspect Cycle</a>
+  <h1>The Charge of a Cell</h1>
+  <p class="standfirst">
+    What a person is made of, at each rank. Every threshold bonds atoms into every
+    cell of the body &mdash; one count for each aspect you broke through with &mdash;
+    and the count rises tenfold at every step.
+  </p>
+
+  <div class="controls">
+    <span class="lbl">Rank</span>
+    <button class="rank" data-n="1" aria-pressed="true">Apprentice</button>
+    <button class="rank" data-n="10" aria-pressed="false">Journeyman</button>
+    <button class="rank" data-n="100" aria-pressed="false">Master</button>
+    <button class="rank" data-n="1000" aria-pressed="false">Grandmaster</button>
+  </div>
+  <div class="controls">
+    <span class="lbl">Pairs held</span>
+    <button class="pairs" data-p="1" aria-pressed="true">1</button>
+    <button class="pairs" data-p="2" aria-pressed="false">2</button>
+    <button class="pairs" data-p="4" aria-pressed="false">4</button>
+    <button class="pairs" data-p="8" aria-pressed="false">8</button>
+  </div>
+
+  <div class="stage">
+    <div class="cell">
+      <canvas id="c" width="820" height="560"></canvas>
+      <div class="cap" id="cap"></div>
+    </div>
+    <div class="side">
+      <table>
+        <thead><tr><th>In one cell</th><th style="text-align:right">Atoms</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>What the numbers mean</h2>
+  <p class="note">
+    A human body runs about 3.7 &times; 10<sup>13</sup> cells in some 70 litres, which is
+    <strong>528,571 cells per cubic millimetre</strong>. So the density of any one
+    aspect in a body is simply the per-cell count multiplied by that.
+  </p>
+
+  <div class="wide">
+  <table>
+    <thead><tr><th>Rank</th><th style="text-align:right">Per cell, per aspect</th><th style="text-align:right">Gained at this step</th><th style="text-align:right">Density per aspect</th></tr></thead>
+    <tbody>
+      <tr><td>Apprentice</td><td class="n">1</td><td class="n">+1</td><td class="n">529 thousand /mm&sup3;</td></tr>
+      <tr><td>Journeyman</td><td class="n">10</td><td class="n">+9</td><td class="n">5.3 million /mm&sup3;</td></tr>
+      <tr><td>Master</td><td class="n">100</td><td class="n">+90</td><td class="n">52.9 million /mm&sup3;</td></tr>
+      <tr><td>Grandmaster</td><td class="n">1,000</td><td class="n">+900</td><td class="n">529 million /mm&sup3;</td></tr>
+      <tr><td>Ascendant</td><td class="n">10,000</td><td class="n">+9,000</td><td class="n">5.3 billion /mm&sup3;</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Aether is not chosen</h2>
+  <p class="note">
+    Aether is never acquired and never counted separately. The Aether in a cell
+    <strong>equals the count of that cell&rsquo;s highest pair</strong> &mdash; an
+    Apprentice has one of each aspect and one Aether, a Master has a hundred and a
+    hundred. It follows the maximum rather than being taken in.
+  </p>
+  <p class="note">
+    Ambient Aether behaves the same way: a region&rsquo;s Aether reading is roughly
+    the <strong>maximum</strong> of its aspect densities. Ground reading
+    <em>Air&nbsp;20, Earth&nbsp;24</em> also reads <em>Aether&nbsp;&asymp;&nbsp;24</em>.
+  </p>
+  <p class="note">
+    So a cell&rsquo;s whole contents come to <code>(aspects &times; count) + count</code>.
+    A Grandmaster holding four pairs carries <strong>9,000 atoms in every cell</strong>:
+    a thousand of each of eight aspects, and a thousand Aether.
+  </p>
+
+  <h2>The bonded charge cannot be spent</h2>
+  <p class="note">
+    None of this is fuel. Bonded mana is fixed in place and cannot be used for a
+    working &mdash; it is structure. What it buys is lifespan, physical attributes,
+    and speed of flow. The mana a person actually casts with is held loose in the
+    kardia and spent.
+  </p>
+
+</div>
+
+<script>
+const ASPECTS = [
+  ['Air','#BFD9E8'], ['Earth','#9C7A45'],
+  ['Water','#3E92CC'], ['Fire','#E4572E'],
+  ['Life','#7FBF6B'], ['Death','#B8B0A4'],
+  ['Light','#F5E7B8'], ['Dark','#54487A'],
+  ['Order','#9FBFA8'], ['Entropy','#A85C68'],
+  ['Space','#5E6FA8'], ['Time','#C08A54'],
+  ['Mind','#C79FE0'], ['Flesh','#C97B6B'],
+  ['Electromagnetism','#F0C94B'], ['Gravity','#77808F']
+];
+const AETHER = '#EAE6FA';
+const CELLS_PER_MM3 = 3.7e13 / 7.0e7;
+
+let rank = 1, pairs = 1;
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+
+function held(){ return ASPECTS.slice(0, pairs*2); }
+
+// deterministic scatter so the picture is stable between redraws
+function rng(seed){ let s = seed>>>0; return () => (s = (s*1664525+1013904223)>>>0) / 4294967296; }
+
+function draw(){
+  const W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2, cy=H/2, rx=W*0.42, ry=H*0.40;
+
+  // membrane
+  ctx.save();
+  ctx.strokeStyle='rgba(232,220,195,.30)'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle='rgba(232,220,195,.10)'; ctx.lineWidth=8;
+  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  // nucleus
+  ctx.save();
+  ctx.fillStyle='rgba(232,220,195,.055)'; ctx.strokeStyle='rgba(232,220,195,.22)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.ellipse(cx-W*0.05,cy+H*0.02,rx*0.30,ry*0.30,0,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  const list = held();
+  // how many dots we actually draw — one per atom up to a cap, then it's a field
+  const perAspect = rank;
+  const CAP = 90;
+  const drawn = Math.min(perAspect, CAP);
+  const abbreviated = perAspect > CAP;
+
+  const r = rng(1234 + list.length*7 + rank);
+  const all = [];
+  list.forEach(([name,col],i)=>{
+    for(let k=0;k<drawn;k++) all.push([col, name]);
+  });
+  for(let k=0;k<drawn;k++) all.push([AETHER,'Aether']);
+
+  // scatter inside the ellipse, avoiding the nucleus
+  for(const [col] of all){
+    let x,y,tries=0;
+    do{
+      const a=r()*Math.PI*2, rad=Math.sqrt(r());
+      x=cx+Math.cos(a)*rx*0.93*rad; y=cy+Math.sin(a)*ry*0.93*rad;
+      tries++;
+    }while(tries<8 && Math.hypot((x-(cx-W*0.05))/(rx*0.32),(y-(cy+H*0.02))/(ry*0.32))<1);
+    ctx.beginPath();
+    ctx.fillStyle=col;
+    ctx.globalAlpha = abbreviated ? 0.55 : 0.9;
+    ctx.arc(x,y, abbreviated?2.4:3.4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  document.getElementById('cap').textContent =
+    abbreviated
+      ? `one cell — ${CAP} of ${perAspect.toLocaleString()} shown per aspect`
+      : `one cell — every atom shown`;
+
+  // table
+  const tb=document.getElementById('tb');
+  tb.innerHTML='';
+  list.forEach(([name,col])=>{
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td><span class="dot" style="background:${col}"></span>${name}</td><td class="n">${rank.toLocaleString()}</td></tr>`);
+  });
+  tb.insertAdjacentHTML('beforeend',
+    `<tr><td><span class="dot" style="background:${AETHER}"></span>Aether</td><td class="n">${rank.toLocaleString()}</td></tr>`);
+  const total = list.length*rank + rank;
+  tb.insertAdjacentHTML('beforeend',
+    `<tr><td class="total">Total in the cell</td><td class="n total">${total.toLocaleString()}</td></tr>`);
+  tb.insertAdjacentHTML('beforeend',
+    `<tr><td class="total">Density, per aspect</td><td class="n total">${Math.round(rank*CELLS_PER_MM3).toLocaleString()}/mm³</td></tr>`);
+}
+
+function wire(cls, set){
+  document.querySelectorAll('.'+cls).forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.'+cls).forEach(x=>x.setAttribute('aria-pressed', x===b));
+    set(b); draw();
+  });
+}
+wire('rank', b => rank = +b.dataset.n);
+wire('pairs', b => pairs = +b.dataset.p);
+draw();
+</script>
+</body>
+</html>
