@@ -32,7 +32,7 @@ h1{font-size:clamp(2rem,5.5vw,3rem);font-weight:500;line-height:1.06;margin:0 0 
 h2{font-family:'IBM Plex Mono',monospace;font-size:.68rem;font-weight:500;letter-spacing:.26em;
   text-transform:uppercase;color:var(--vellum-faint);margin:2.6rem 0 1rem}
 
-.controls{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.4rem}
+.controls{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1.1rem}
 button{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.14em;
   text-transform:uppercase;padding:.5rem .8rem;border:1px solid var(--vellum-faint);
   background:none;color:var(--vellum-dim);cursor:pointer;border-radius:2px}
@@ -44,14 +44,17 @@ button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 
 .stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,17rem);gap:1px;
   background:var(--hair);border:1px solid var(--hair)}
-@media (max-width:720px){.stage{grid-template-columns:1fr}}
-.cell,.side{background:var(--plate);padding:1.2rem}
-canvas{display:block;width:100%;height:auto;background:transparent}
-.cap{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;
-  color:var(--vellum-faint);text-align:center;margin-top:.6rem}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.cell,.side{background:var(--plate);position:relative}
+.cell{padding:0}
+#gl{display:block;width:100%;height:460px;cursor:grab;touch-action:none}
+#gl.dragging{cursor:grabbing}
+.cap{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.1em;
+  color:var(--vellum-faint);text-align:center;padding:.4rem 1rem .9rem}
+.side{padding:1.2rem}
 
 table{border-collapse:collapse;width:100%;font-size:.86rem}
-th,td{text-align:left;padding:.34rem .5rem;border-bottom:1px solid var(--hair)}
+th,td{text-align:left;padding:.32rem .5rem;border-bottom:1px solid var(--hair)}
 th{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:.14em;
   text-transform:uppercase;color:var(--vellum-faint);font-weight:400}
 td.n{text-align:right;font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',monospace;font-size:.78rem}
@@ -69,8 +72,9 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
   <h1>The Charge of a Cell</h1>
   <p class="standfirst">
     What a person is made of, at each rank. Every threshold bonds atoms into every
-    cell of the body &mdash; one count for each aspect you broke through with &mdash;
-    and the count rises tenfold at every step.
+    cell of the body &mdash; one count for each aspect broken through with &mdash;
+    and the count rises tenfold at every step. They sit at their seats on the
+    compass, because that is the orientation the kardia holds them in.
   </p>
 
   <div class="controls">
@@ -86,12 +90,14 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
     <button class="pairs" data-p="2" aria-pressed="false">2</button>
     <button class="pairs" data-p="4" aria-pressed="false">4</button>
     <button class="pairs" data-p="8" aria-pressed="false">8</button>
+    <span class="lbl" style="margin-left:.6rem">Armillary</span>
+    <button id="rings" aria-pressed="true">Shown</button>
   </div>
 
   <div class="stage">
     <div class="cell">
-      <canvas id="c" width="820" height="560"></canvas>
-      <div class="cap" id="cap"></div>
+      <canvas id="gl"></canvas>
+      <div class="cap">drag to turn &middot; scroll to zoom &middot; <span id="shown"></span></div>
     </div>
     <div class="side">
       <table>
@@ -104,8 +110,8 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
   <h2>What the numbers mean</h2>
   <p class="note">
     A human body runs about 3.7 &times; 10<sup>13</sup> cells in some 70 litres, which is
-    <strong>528,571 cells per cubic millimetre</strong>. So the density of any one
-    aspect in a body is simply the per-cell count multiplied by that.
+    <strong>528,571 cells per cubic millimetre</strong>. The density of any one aspect
+    in a body is the per-cell count multiplied by that.
   </p>
 
   <div class="wide">
@@ -123,18 +129,11 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
 
   <h2>Aether is not chosen</h2>
   <p class="note">
-    Every atom sits at <strong>its own seat on the compass</strong> &mdash; the same
-    arrangement the kardia holds, carried down into every cell of the body. The
-    figure above is drawn from the compass&rsquo;s own coordinates, viewed from
-    above; near seats are brighter than far ones. Note the compass is an armillary
-    in three dimensions, so any flat view of it foreshortens &mdash; this angle is
-    simply the one that separates all sixteen seats without any two merging.
-  </p>
-  <p class="note">
     Aether is never acquired and never counted separately. The Aether in a cell
     <strong>equals the count of that cell&rsquo;s highest pair</strong> &mdash; an
     Apprentice has one of each aspect and one Aether, a Master has a hundred and a
-    hundred. It follows the maximum rather than being taken in.
+    hundred. It follows the maximum rather than being taken in, and it sits at the
+    centre, being directionless.
   </p>
   <p class="note">
     Ambient Aether behaves the same way: a region&rsquo;s Aether reading is roughly
@@ -151,142 +150,194 @@ code{font-family:'IBM Plex Mono',monospace;font-size:.86em;color:var(--brass)}
   <p class="note">
     None of this is fuel. Bonded mana is fixed in place and cannot be used for a
     working &mdash; it is structure. What it buys is lifespan, physical attributes,
-    and speed of flow. The mana a person actually casts with is held loose in the
-    kardia and spent.
+    and speed of flow. The mana a person casts with is held loose in the kardia
+    and spent.
   </p>
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// Positions are the compass's own — lat/long taken from aetheric-compass.html.
-// Atoms bond in the orientation the kardia holds them in, so a cell is a compass.
+/* ═══════════════════════════════════════════════════════════════
+   Seats are the compass's own — lat/long taken from
+   aetheric-compass.html. Twelve ring aspects at 45/135/225/315
+   within their ring plane, six junctions on the axes, Aether at
+   the centre.
+   ═══════════════════════════════════════════════════════════════ */
 const ASPECTS = [
-  ['Air','#BFD9E8', 45,  90], ['Earth','#9C7A45', -45, 270],
-  ['Water','#3E92CC', 45, 270], ['Fire','#E4572E', -45,  90],
-  ['Life','#7FBF6B', 45, 180], ['Death','#B8B0A4', -45,   0],
-  ['Light','#F5E7B8',  0,  45], ['Dark','#54487A',   0, 225],
-  ['Order','#9FBFA8',  0, 135], ['Entropy','#A85C68', 0, 315],
-  ['Space','#5E6FA8', 45,   0], ['Time','#C08A54',  -45, 180],
-  ['Mind','#C79FE0',  90,   0], ['Flesh','#C97B6B', -90,   0],
-  ['Electromagnetism','#F0C94B', 0, 90], ['Gravity','#77808F', 0, 270]
+  ['Air',              0xBFD9E8,  45,  90], ['Earth',   0x9C7A45, -45, 270],
+  ['Water',            0x3E92CC,  45, 270], ['Fire',    0xE4572E, -45,  90],
+  ['Life',             0x7FBF6B,  45, 180], ['Death',   0xB8B0A4, -45,   0],
+  ['Light',            0xF5E7B8,   0,  45], ['Dark',    0x54487A,   0, 225],
+  ['Order',            0x9FBFA8,   0, 135], ['Entropy', 0xA85C68,   0, 315],
+  ['Space',            0x5E6FA8,  45,   0], ['Time',    0xC08A54, -45, 180],
+  ['Mind',             0xC79FE0,  90,   0], ['Flesh',   0xC97B6B, -90,   0],
+  ['Electromagnetism', 0xF0C94B,   0,  90], ['Gravity', 0x77808F,   0, 270]
 ];
-
-// project a compass lat/long onto the drawing, viewed from slightly above
-const TILT = 58*Math.PI/180;   // the view that best separates the seats
-function seat(lat, lon, R){
-  const la=lat*Math.PI/180, lo=lon*Math.PI/180;
-  const x=Math.cos(la)*Math.sin(lo), y=Math.sin(la), z=Math.cos(la)*Math.cos(lo);
-  return [ x*R, (-(y*Math.cos(TILT) - z*Math.sin(TILT)))*R,
-           y*Math.sin(TILT) + z*Math.cos(TILT) ];   // third value = depth
-}
-const AETHER = '#EAE6FA';
+const AETHER = 0xEAE6FA;
 const CELLS_PER_MM3 = 3.7e13 / 7.0e7;
+const R = 3.0;          // compass radius
+const CLUSTER = 0.40;   // scatter around a seat
+const CAP = 400;        // atoms drawn per aspect before abbreviating
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function seat(lat, lon){
+  const la = lat*Math.PI/180, lo = lon*Math.PI/180;
+  return new THREE.Vector3(
+    Math.cos(la)*Math.sin(lo)*R,
+    Math.sin(la)*R,
+    Math.cos(la)*Math.cos(lo)*R
+  );
+}
+
+const canvas   = document.getElementById('gl');
+const scene    = new THREE.Scene();
+const camera   = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+camera.position.set(0, 2.0, 12);
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+scene.add(new THREE.AmbientLight(0x8890B8, 0.8));
+const key = new THREE.DirectionalLight(0xC9A227, 0.35);
+key.position.set(5, 8, 6);
+scene.add(key);
+
+const pivot = new THREE.Group();
+scene.add(pivot);
+
+// ── the cell membrane ────────────────────────────────────────
+const shell = new THREE.Group();
+pivot.add(shell);
+shell.add(new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.5, 40, 26),
+  new THREE.MeshBasicMaterial({color:0xE8DCC3, wireframe:true,
+                               transparent:true, opacity:0.05})
+));
+shell.add(new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.5, 40, 26),
+  new THREE.MeshPhongMaterial({color:0x18203a, transparent:true, opacity:0.12,
+                               side:THREE.BackSide, shininess:6})
+));
+
+// ── the three great rings of the armillary ───────────────────
+const ringGroup = new THREE.Group();
+pivot.add(ringGroup);
+[[0,0,0],[Math.PI/2,0,0],[0,0,Math.PI/2]].forEach(rot=>{
+  const t = new THREE.Mesh(
+    new THREE.TorusGeometry(R, 0.014, 8, 120),
+    new THREE.MeshBasicMaterial({color:0xE8DCC3, transparent:true, opacity:0.22})
+  );
+  t.rotation.set(rot[0], rot[1], rot[2]);
+  ringGroup.add(t);
+});
+
+// ── atoms ────────────────────────────────────────────────────
+const unit = new THREE.SphereGeometry(1, 10, 8);
+let atomGroup = new THREE.Group();
+pivot.add(atomGroup);
 
 let rank = 1, pairs = 1;
-const c = document.getElementById('c'), ctx = c.getContext('2d');
 
-function held(){ return ASPECTS.slice(0, pairs*2); }
+// deterministic, so turning the cell never reshuffles it
+function rng(seed){ let s=seed>>>0; return ()=> (s=(s*1664525+1013904223)>>>0)/4294967296; }
 
-// deterministic scatter so the picture is stable between redraws
-function rng(seed){ let s = seed>>>0; return () => (s = (s*1664525+1013904223)>>>0) / 4294967296; }
+function build(){
+  pivot.remove(atomGroup);
+  atomGroup.traverse(o=>{ if(o.isInstancedMesh) o.material.dispose(); });
+  atomGroup = new THREE.Group();
+  pivot.add(atomGroup);
 
-function draw(){
-  const W=c.width, H=c.height;
-  ctx.clearRect(0,0,W,H);
-  const cx=W/2, cy=H/2, rx=W*0.42, ry=H*0.40;
+  const held  = ASPECTS.slice(0, pairs*2);
+  const drawn = Math.min(rank, CAP);
+  const size  = rank>=1000 ? 0.050 : rank>=100 ? 0.070 : rank>=10 ? 0.105 : 0.16;
+  const r = rng(1009 + pairs*31 + rank);
+  const m = new THREE.Matrix4();
 
-  // membrane
-  ctx.save();
-  ctx.strokeStyle='rgba(232,220,195,.30)'; ctx.lineWidth=2.5;
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.stroke();
-  ctx.strokeStyle='rgba(232,220,195,.10)'; ctx.lineWidth=8;
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.stroke();
-  ctx.restore();
-
-  // nucleus
-  ctx.save();
-  ctx.fillStyle='rgba(232,220,195,.055)'; ctx.strokeStyle='rgba(232,220,195,.22)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.ellipse(cx-W*0.05,cy+H*0.02,rx*0.30,ry*0.30,0,0,Math.PI*2);
-  ctx.fill(); ctx.stroke();
-  ctx.restore();
-
-  const list = held();
-  const perAspect = rank;
-  const CAP = 60;
-  const drawn = Math.min(perAspect, CAP);
-  const abbreviated = perAspect > CAP;
-
-  const R = Math.min(rx, ry) * 0.66;     // compass radius inside the cell
-  const r = rng(97 + list.length*13 + rank);
-
-  // faint ring guides, so the compass structure is legible
-  ctx.save();
-  ctx.strokeStyle='rgba(232,220,195,.07)'; ctx.lineWidth=1;
-  for(const [rot,sq] of [[0,1],[Math.PI/2,0.42],[0,0.42]]){
-    ctx.beginPath();
-    ctx.ellipse(cx,cy, R, R*(sq===1?Math.cos(TILT):sq), rot, 0, Math.PI*2);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // gather every atom at its own seat, then paint back-to-front by depth
-  const atoms=[];
-  list.forEach(([name,col,lat,lon])=>{
-    const [sx,sy,depth]=seat(lat,lon,R);
-    for(let k=0;k<drawn;k++){
-      const a=r()*Math.PI*2, rad=Math.sqrt(r())*R*0.085;  // tight enough that seats never merge
-      atoms.push([cx+sx+Math.cos(a)*rad, cy+sy+Math.sin(a)*rad, col, depth]);
+  const place = (centre, colour, n, spread) => {
+    const mesh = new THREE.InstancedMesh(unit,
+      new THREE.MeshPhongMaterial({color:colour, emissive:colour,
+                                   emissiveIntensity:0.45, shininess:30}), n);
+    for(let i=0;i<n;i++){
+      const th = 2*Math.PI*r(), ph = Math.acos(2*r()-1), rad = spread*Math.cbrt(r());
+      m.makeScale(size,size,size);
+      m.setPosition(centre.x + rad*Math.sin(ph)*Math.cos(th),
+                    centre.y + rad*Math.sin(ph)*Math.sin(th),
+                    centre.z + rad*Math.cos(ph));
+      mesh.setMatrixAt(i, m);
     }
-  });
-  // Aether sits at the centre — directionless, and it keeps the middle of the
-  // armillary occupied in a body the way it is empty in the compass.
-  for(let k=0;k<drawn;k++){
-    const a=r()*Math.PI*2, rad=Math.sqrt(r())*R*0.075;
-    atoms.push([cx+Math.cos(a)*rad, cy+Math.sin(a)*rad, AETHER, 0]);
-  }
+    mesh.instanceMatrix.needsUpdate = true;
+    atomGroup.add(mesh);
+  };
 
-  atoms.sort((p,q)=>p[3]-q[3]);
-  for(const [x,y,col,depth] of atoms){
-    const near = (depth+1)/2;                       // 0 far, 1 near
-    ctx.beginPath();
-    ctx.fillStyle=col;
-    ctx.globalAlpha = (abbreviated?0.5:0.85) * (0.45 + 0.55*near);
-    ctx.arc(x,y, (abbreviated?2.2:3.2) * (0.72 + 0.28*near), 0, Math.PI*2);
-    ctx.fill();
-  }
-  ctx.globalAlpha=1;
+  held.forEach(([n,col,lat,lon]) => place(seat(lat,lon), col, drawn, CLUSTER));
+  place(new THREE.Vector3(0,0,0), AETHER, drawn, CLUSTER*0.9);
 
-  document.getElementById('cap').textContent =
-    (abbreviated
-      ? `one cell — ${CAP} of ${perAspect.toLocaleString()} shown per aspect`
-      : `one cell — every atom shown`)
-    + ` · atoms sit at their compass seats, Aether at the centre`;
+  document.getElementById('shown').textContent =
+    rank > CAP ? `${CAP} of ${rank.toLocaleString()} shown per aspect` : 'every atom shown';
 
-  // table
-  const tb=document.getElementById('tb');
-  tb.innerHTML='';
-  list.forEach(([name,col])=>{
+  const tb = document.getElementById('tb'); tb.innerHTML='';
+  held.forEach(([n,col])=>{
     tb.insertAdjacentHTML('beforeend',
-      `<tr><td><span class="dot" style="background:${col}"></span>${name}</td><td class="n">${rank.toLocaleString()}</td></tr>`);
+      `<tr><td><span class="dot" style="background:#${col.toString(16).padStart(6,'0')}"></span>${n}</td>`+
+      `<td class="n">${rank.toLocaleString()}</td></tr>`);
   });
   tb.insertAdjacentHTML('beforeend',
-    `<tr><td><span class="dot" style="background:${AETHER}"></span>Aether</td><td class="n">${rank.toLocaleString()}</td></tr>`);
-  const total = list.length*rank + rank;
+    `<tr><td><span class="dot" style="background:#EAE6FA"></span>Aether</td><td class="n">${rank.toLocaleString()}</td></tr>`);
   tb.insertAdjacentHTML('beforeend',
-    `<tr><td class="total">Total in the cell</td><td class="n total">${total.toLocaleString()}</td></tr>`);
+    `<tr><td class="total">Total in the cell</td><td class="n total">${(held.length*rank+rank).toLocaleString()}</td></tr>`);
   tb.insertAdjacentHTML('beforeend',
     `<tr><td class="total">Density, per aspect</td><td class="n total">${Math.round(rank*CELLS_PER_MM3).toLocaleString()}/mm³</td></tr>`);
 }
 
+// ── drag to turn, scroll to zoom ─────────────────────────────
+let rotX = 0.30, rotY = 0.60, dragging = false, last = null, spin = !REDUCED;
+canvas.addEventListener('pointerdown', e=>{
+  dragging = true; spin = false; last = {x:e.clientX, y:e.clientY};
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add('dragging');
+});
+canvas.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  rotY += (e.clientX-last.x)*0.008;
+  rotX = Math.max(-1.45, Math.min(1.45, rotX + (e.clientY-last.y)*0.008));
+  last = {x:e.clientX, y:e.clientY};
+});
+const release = ()=>{ dragging=false; canvas.classList.remove('dragging'); };
+canvas.addEventListener('pointerup', release);
+canvas.addEventListener('pointercancel', release);
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  camera.position.z = Math.max(6, Math.min(24, camera.position.z + e.deltaY*0.012));
+}, {passive:false});
+
+document.getElementById('rings').onclick = e=>{
+  const on = !ringGroup.visible;
+  ringGroup.visible = on; shell.visible = on;
+  e.target.setAttribute('aria-pressed', on);
+  e.target.textContent = on ? 'Shown' : 'Hidden';
+};
+
 function wire(cls, set){
   document.querySelectorAll('.'+cls).forEach(b=>b.onclick=()=>{
     document.querySelectorAll('.'+cls).forEach(x=>x.setAttribute('aria-pressed', x===b));
-    set(b); draw();
+    set(b); build();
   });
 }
-wire('rank', b => rank = +b.dataset.n);
+wire('rank',  b => rank  = +b.dataset.n);
 wire('pairs', b => pairs = +b.dataset.p);
-draw();
+
+function frame(){
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if(canvas.width !== w || canvas.height !== h){
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  if(spin) rotY += 0.0022;
+  pivot.rotation.x = rotX; pivot.rotation.y = rotY;
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+build(); frame();
 </script>
 </body>
 </html>
